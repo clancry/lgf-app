@@ -1,26 +1,33 @@
 import { createClient } from '@supabase/supabase-js';
-import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 const SUPABASE_URL = 'https://dprhjwrsvixkmpwsxpuk.supabase.co';
 const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwcmhqd3Jzdml4a21wd3N4cHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNTAwMTAsImV4cCI6MjA5MDkyNjAxMH0.eOhuT5SR9EX3dg85gOYECW9gA5NR7fPcYI7sxk0O1Hk';
 
-// Secure storage adapter for Supabase auth tokens
-const ExpoSecureStoreAdapter = {
-  getItem: (key: string) => {
-    return SecureStore.getItemAsync(key);
-  },
-  setItem: (key: string, value: string) => {
-    SecureStore.setItemAsync(key, value);
-  },
-  removeItem: (key: string) => {
-    SecureStore.deleteItemAsync(key);
-  },
-};
+// Storage adapter — SecureStore sur mobile, mémoire sur web
+function getStorageAdapter() {
+  if (Platform.OS === 'web') {
+    // Fallback mémoire pour le web
+    const memStore: Record<string, string> = {};
+    return {
+      getItem: (key: string) => memStore[key] ?? null,
+      setItem: (key: string, value: string) => { memStore[key] = value; },
+      removeItem: (key: string) => { delete memStore[key]; },
+    };
+  }
+  // Sur mobile : expo-secure-store
+  const SecureStore = require('expo-secure-store');
+  return {
+    getItem: (key: string) => SecureStore.getItemAsync(key),
+    setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
+    removeItem: (key: string) => SecureStore.deleteItemAsync(key),
+  };
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage: ExpoSecureStoreAdapter,
+    storage: getStorageAdapter(),
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

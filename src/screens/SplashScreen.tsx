@@ -36,13 +36,22 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
       }),
     ]).start();
 
-    // Check session after animation
+    // Check session after animation (with safety timeout)
     const timer = setTimeout(async () => {
-      const { data } = await supabase.auth.getSession();
-      const session = data.session;
-      if (session?.user) {
-        onFinish(true, session.user.id);
-      } else {
+      try {
+        const { data } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<{ data: { session: null } }>((resolve) =>
+            setTimeout(() => resolve({ data: { session: null } }), 3000)
+          ),
+        ]);
+        const session = data.session;
+        if (session?.user) {
+          onFinish(true, session.user.id);
+        } else {
+          onFinish(false);
+        }
+      } catch {
         onFinish(false);
       }
     }, 2000);
