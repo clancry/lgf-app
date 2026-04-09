@@ -244,7 +244,7 @@ export default function DashboardScreen({ session }: DashboardScreenProps) {
         {/* Breakfast card */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Petit-déjeuner du jour 🌅</Text>
-          <BreakfastCard recipe={breakfast} onShuffle={shuffleBreakfast} />
+          <BreakfastCard regime={profile?.regime || 'equilibre'} />
         </View>
 
         {/* Chrono-nutrition */}

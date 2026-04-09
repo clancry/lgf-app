@@ -118,8 +118,13 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
 
   async function loadFeed() {
     setFeedLoading(true);
-    const { posts: data } = await getArenaFeed();
-    setPosts(data ?? []);
+    try {
+      const { posts: data } = await getArenaFeed();
+      setPosts(data || []);
+    } catch (e) {
+      console.error('Feed error:', e);
+      setPosts([]);
+    }
     setFeedLoading(false);
     setRefreshing(false);
   }
