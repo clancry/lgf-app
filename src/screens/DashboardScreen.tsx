@@ -241,34 +241,24 @@ export default function DashboardScreen({ session }: DashboardScreenProps) {
           </View>
         </View>
 
-        {/* Breakfast card */}
+        {/* Plan du jour résumé */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Petit-déjeuner du jour 🌅</Text>
-          <BreakfastCard regime={profile?.regime || 'equilibre'} />
-        </View>
-
-        {/* Chrono-nutrition */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Chrono-Nutrition ⏰</Text>
-          <View style={styles.chronoCard}>
-            <View style={styles.chronoRow}>
-              {[
-                { label: 'Petit-déj', time: '07:00', emoji: '🌅' },
-                { label: 'Déjeuner', time: '12:30', emoji: '☀️' },
-                { label: 'Collation', time: '16:00', emoji: '🍎' },
-                { label: 'Dîner', time: '19:30', emoji: '🌙' },
-              ].map(({ label, time, emoji }) => (
-                <View key={label} style={styles.mealSlot}>
-                  <Text style={styles.mealEmoji}>{emoji}</Text>
-                  <Text style={styles.mealLabel}>{label}</Text>
-                  <Text style={styles.mealTime}>{time}</Text>
-                </View>
-              ))}
+          <Text style={styles.sectionTitle}>Ton plan du jour ⏰</Text>
+          <TouchableOpacity style={styles.planCard} activeOpacity={0.8}>
+            <View style={styles.planCardHeader}>
+              <Text style={{fontSize: 28}}>{'🏃'}</Text>
+              <View style={{flex: 1}}>
+                <Text style={styles.planCardTitle}>Chrono-Nutrition</Text>
+                <Text style={styles.planCardSub}>
+                  {profile?.regime === 'masse' ? '5-6 repas' : profile?.regime === 'seche' ? '4-5 repas' : '4 repas'} adaptés à ta journée
+                </Text>
+              </View>
+              <Text style={{fontSize: 13, color: Colors.darkGreen, fontWeight: '700'}}>Voir ›</Text>
             </View>
-            <TouchableOpacity style={styles.planButton}>
-              <Text style={styles.planButtonText}>Voir mon plan complet →</Text>
-            </TouchableOpacity>
-          </View>
+            <Text style={styles.planCardTip}>
+              💡 Dis-nous si c'est un jour d'entraînement ou repos — on s'occupe du reste
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Quick access cards */}
@@ -427,48 +417,36 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 3,
   },
-  chronoCard: {
+  planCard: {
     backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: Colors.lime + '30',
   },
-  chronoRow: {
+  planCardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  mealSlot: {
     alignItems: 'center',
-    gap: 4,
+    gap: 12,
   },
-  mealEmoji: {
-    fontSize: 20,
+  planCardTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.textPrimary,
   },
-  mealLabel: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    fontWeight: '600',
-  },
-  mealTime: {
+  planCardSub: {
     fontSize: 12,
-    color: Colors.darkGreen,
-    fontWeight: '700',
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
-  planButton: {
-    alignItems: 'center',
+  planCardTip: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  planButtonText: {
-    color: Colors.darkGreen,
-    fontSize: 14,
-    fontWeight: '700',
+    borderTopColor: Colors.lime + '15',
+    lineHeight: 18,
   },
   quickCards: {
     flexDirection: 'row',

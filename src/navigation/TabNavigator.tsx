@@ -65,18 +65,6 @@ export function TabNavigator({ session }: TabNavigatorProps) {
       </Tab.Screen>
 
       <Tab.Screen
-        name="Plan"
-        options={{
-          tabBarLabel: 'Plan',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon emoji="⏰" focused={focused} />
-          ),
-        }}
-      >
-        {() => <DayPlanScreen session={session} />}
-      </Tab.Screen>
-
-      <Tab.Screen
         name="Recettes"
         options={{
           tabBarLabel: 'Recettes',
@@ -98,6 +86,18 @@ export function TabNavigator({ session }: TabNavigatorProps) {
         }}
       >
         {() => <ArenaScreen session={session} />}
+      </Tab.Screen>
+
+      <Tab.Screen
+        name="Plan"
+        options={{
+          tabBarLabel: 'Plan',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon emoji="⏰" focused={focused} />
+          ),
+        }}
+      >
+        {() => <DayPlanScreen session={session} />}
       </Tab.Screen>
 
       <Tab.Screen
