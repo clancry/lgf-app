@@ -13,6 +13,7 @@ import SplashScreen from './src/screens/SplashScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
+import DailyQuizScreen from './src/screens/DailyQuizScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -24,7 +25,7 @@ export type RootStackParamList = {
 
 const Stack = createStackNavigator<RootStackParamList>();
 
-type AppState = 'loading' | 'splash' | 'login' | 'onboarding' | 'main';
+type AppState = 'loading' | 'splash' | 'login' | 'onboarding' | 'dailyquiz' | 'main';
 
 export default function App() {
   const [appState, setAppState] = useState<AppState>('loading');
@@ -54,7 +55,7 @@ export default function App() {
   async function checkOnboardingStatus(userId: string) {
     const { profile } = await getProfile(userId);
     if (profile?.onboarding_done) {
-      setAppState('main');
+      setAppState('dailyquiz');
     } else {
       setAppState('onboarding');
     }
@@ -73,6 +74,10 @@ export default function App() {
   }
 
   function handleOnboardingComplete() {
+    setAppState('dailyquiz');
+  }
+
+  function handleDailyQuizComplete(_points: number) {
     setAppState('main');
   }
 
@@ -81,6 +86,15 @@ export default function App() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.lime} />
       </View>
+    );
+  }
+
+  // DailyQuiz is rendered outside NavigationContainer (full-screen, no nav)
+  if (appState === 'dailyquiz') {
+    return (
+      <SafeAreaProvider>
+        <DailyQuizScreen session={session} onComplete={handleDailyQuizComplete} />
+      </SafeAreaProvider>
     );
   }
 
