@@ -6,12 +6,14 @@ import { Session } from '@supabase/supabase-js';
 import { Colors } from '../theme/colors';
 import DashboardScreen from '../screens/DashboardScreen';
 import RecipesScreen from '../screens/RecipesScreen';
+import DayPlanScreen from '../screens/DayPlanScreen';
 import ArenaScreen from '../screens/ArenaScreen';
 import WalletScreen from '../screens/WalletScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
 export type TabParamList = {
   Accueil: undefined;
+  Plan: undefined;
   Recettes: undefined;
   Arena: undefined;
   Wallet: undefined;
@@ -63,6 +65,18 @@ export function TabNavigator({ session }: TabNavigatorProps) {
       </Tab.Screen>
 
       <Tab.Screen
+        name="Plan"
+        options={{
+          tabBarLabel: 'Plan',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon emoji="⏰" focused={focused} />
+          ),
+        }}
+      >
+        {() => <DayPlanScreen session={session} />}
+      </Tab.Screen>
+
+      <Tab.Screen
         name="Recettes"
         options={{
           tabBarLabel: 'Recettes',
@@ -84,18 +98,6 @@ export function TabNavigator({ session }: TabNavigatorProps) {
         }}
       >
         {() => <ArenaScreen session={session} />}
-      </Tab.Screen>
-
-      <Tab.Screen
-        name="Wallet"
-        options={{
-          tabBarLabel: 'Wallet',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon emoji="💳" focused={focused} />
-          ),
-        }}
-      >
-        {() => <WalletScreen session={session} />}
       </Tab.Screen>
 
       <Tab.Screen
