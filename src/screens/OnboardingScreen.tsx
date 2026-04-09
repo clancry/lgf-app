@@ -101,27 +101,38 @@ export default function OnboardingScreen({ session, onComplete }: OnboardingScre
   async function handleFinish() {
     if (!session?.user) return;
     setLoading(true);
-    const { error } = await supabase.from('profiles').upsert({
-      id: session.user.id,
-      email: session.user.email,
-      first_name: data.first_name,
-      last_name: data.last_name,
-      taille: data.taille ? Number(data.taille) : null,
-      poids: data.poids ? Number(data.poids) : null,
-      age: data.age ? Number(data.age) : null,
-      genre: data.genre,
-      regime: data.regime,
-      objectif: data.objectif,
-      niveau_activite: data.niveau_activite,
-      heure_entrainement: data.heure_entrainement,
-      budget_mensuel: data.budget_mensuel,
-      onboarding_done: true,
-    });
-    setLoading(false);
-    if (error) {
-      Alert.alert('Erreur', "Impossible de sauvegarder ton profil. Réessaie.");
-    } else {
-      onComplete();
+    try {
+      const { error } = await supabase.from('profiles').upsert({
+        id: session.user.id,
+        email: session.user.email,
+        first_name: data.first_name || null,
+        last_name: data.last_name || null,
+        height: data.taille ? Number(data.taille) : null,
+        weight: data.poids ? Number(data.poids) : null,
+        age: data.age ? Number(data.age) : null,
+        gender: data.genre || null,
+        regime: data.regime || null,
+        goal: data.objectif || null,
+        activity_level: data.niveau_activite || null,
+        training_time: data.heure_entrainement || null,
+        monthly_budget: data.budget_mensuel ? Number(data.budget_mensuel) : null,
+        onboarding_done: true,
+      });
+      setLoading(false);
+      if (error) {
+        console.error('Onboarding error:', error);
+        if (Platform.OS === 'web') {
+          window.alert('Erreur : ' + error.message);
+        } else {
+          Alert.alert('Erreur', error.message);
+        }
+      } else {
+        onComplete();
+      }
+    } catch (e: any) {
+      setLoading(false);
+      console.error('Onboarding catch:', e);
+      onComplete(); // passe quand même pour ne pas bloquer
     }
   }
 
