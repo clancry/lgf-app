@@ -1,6 +1,6 @@
 export const Colors = {
   // Brand primaries
-  darkGreen: '#1B4332',
+  darkGreen: '#1B6940',  // matché au fond du logo JPEG
   lime: '#B5D43B',
   orange: '#E8612D',
 
