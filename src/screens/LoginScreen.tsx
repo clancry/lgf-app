@@ -1,410 +1,242 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  ScrollView,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Dimensions,
+  View, Text, TextInput, TouchableOpacity, Image,
+  StyleSheet, ScrollView, ActivityIndicator, Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { signInWithEmail, signUpWithEmail, createProfile } from '../lib/supabase';
+import { signInWithEmail, signUpWithEmail } from '../lib/supabase';
 import { Colors } from '../theme/colors';
-
-const { width, height } = Dimensions.get('window');
 
 interface LoginScreenProps {
   onLoginSuccess: (userId: string) => void;
 }
 
-type AuthMode = 'buttons' | 'login' | 'register';
-
 export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
-  const [mode, setMode] = useState<AuthMode>('buttons');
+  const [showEmail, setShowEmail] = useState(false);
+  const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  async function handleSignIn() {
-    if (!email || !password) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
+  const handleAuth = async () => {
+    if (!email.trim() || !password) {
+      setError('Remplis tous les champs.');
       return;
     }
+    setError('');
     setLoading(true);
-    const { data, error } = await signInWithEmail(email.trim(), password);
+    try {
+      if (isRegister) {
+        const { data, error: err } = await signUpWithEmail(email.trim(), password);
+        if (err) { setError(err.message); setLoading(false); return; }
+        if (data?.user) onLoginSuccess(data.user.id);
+      } else {
+        const { data, error: err } = await signInWithEmail(email.trim(), password);
+        if (err) { setError(err.message); setLoading(false); return; }
+        if (data?.user) onLoginSuccess(data.user.id);
+      }
+    } catch (e: any) {
+      setError(e.message || 'Erreur de connexion');
+    }
     setLoading(false);
-    if (error) {
-      Alert.alert('Connexion échouée', error.message);
-    } else if (data.user) {
-      onLoginSuccess(data.user.id);
-    }
-  }
+  };
 
-  async function handleSignUp() {
-    if (!email || !password) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
-      return;
+  const showAlert = (provider: string) => {
+    if (Platform.OS === 'web') {
+      window.alert(`La connexion avec ${provider} sera disponible prochainement.`);
+    } else {
+      const { Alert } = require('react-native');
+      Alert.alert('Bientôt disponible', `La connexion avec ${provider} sera disponible prochainement.`);
     }
-    if (password.length < 8) {
-      Alert.alert('Mot de passe trop court', 'Minimum 8 caractères requis.');
-      return;
-    }
-    setLoading(true);
-    const { data, error } = await signUpWithEmail(email.trim(), password);
-    setLoading(false);
-    if (error) {
-      Alert.alert('Inscription échouée', error.message);
-    } else if (data.user) {
-      await createProfile(data.user.id, email.trim());
-      onLoginSuccess(data.user.id);
-    }
-  }
-
-  function handleAppleLogin() {
-    Alert.alert('Bientôt disponible', 'La connexion avec Apple sera disponible prochainement.');
-  }
-
-  function handleGoogleLogin() {
-    Alert.alert('Bientôt disponible', 'La connexion avec Google sera disponible prochainement.');
-  }
+  };
 
   return (
-    <View style={styles.container}>
-      {/* Green header section */}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
+      {/* Header vert */}
       <View style={styles.header}>
-        <SafeAreaView edges={['top']}>
-          <Image
-            source={require('../../assets/logo-lgf.jpeg')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={styles.welcomeText}>Bienvenue sur</Text>
-          <Text style={styles.appName}>La Gamelle Fit</Text>
-        </SafeAreaView>
+        <Image
+          source={require('../../assets/logo-lgf.jpeg')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.welcome}>Bienvenue sur</Text>
+        <Text style={styles.title}>La Gamelle Fit</Text>
+        <Text style={styles.subtitle}>
+          Ton coach nutritionnel personnel
+        </Text>
       </View>
 
-      {/* White bottom card */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.flex}
-      >
-        <ScrollView
-          contentContainerStyle={styles.bottomCard}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {mode === 'buttons' && (
-            <View style={styles.buttonsSection}>
-              <Text style={styles.sectionTitle}>Connexion</Text>
-              <Text style={styles.sectionSubtitle}>
-                Choisis ton mode de connexion
-              </Text>
+      {/* Zone blanche */}
+      <View style={styles.formSection}>
+        {!showEmail ? (
+          <>
+            <Text style={styles.sectionTitle}>Connexion</Text>
+            <Text style={styles.sectionSubtitle}>Choisis ton mode de connexion</Text>
 
-              {/* Apple */}
-              <TouchableOpacity
-                style={styles.appleButton}
-                onPress={handleAppleLogin}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.appleButtonText}>🍎  Continuer avec Apple</Text>
-              </TouchableOpacity>
+            {/* Apple */}
+            <TouchableOpacity
+              style={styles.appleBtn}
+              onPress={() => showAlert('Apple')}
+            >
+              <Text style={styles.appleTxt}>🍎  Continuer avec Apple</Text>
+            </TouchableOpacity>
 
-              {/* Google */}
-              <TouchableOpacity
-                style={styles.googleButton}
-                onPress={handleGoogleLogin}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.googleButtonText}>G  Continuer avec Google</Text>
-              </TouchableOpacity>
+            {/* Google */}
+            <TouchableOpacity
+              style={styles.googleBtn}
+              onPress={() => showAlert('Google')}
+            >
+              <Text style={styles.googleTxt}>G  Continuer avec Google</Text>
+            </TouchableOpacity>
 
-              {/* Separator */}
-              <View style={styles.separator}>
-                <View style={styles.separatorLine} />
-                <Text style={styles.separatorText}>ou</Text>
-                <View style={styles.separatorLine} />
-              </View>
-
-              {/* Email */}
-              <TouchableOpacity
-                style={styles.emailButton}
-                onPress={() => setMode('login')}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.emailButtonText}>✉️  Continuer avec Email</Text>
-              </TouchableOpacity>
-
-              <Text style={styles.legalText}>
-                En continuant, tu acceptes nos{' '}
-                <Text style={styles.legalLink}>Conditions d'utilisation</Text>
-                {' '}et notre{' '}
-                <Text style={styles.legalLink}>Politique de confidentialité</Text>.
-              </Text>
+            {/* Séparateur */}
+            <View style={styles.sep}>
+              <View style={styles.sepLine} />
+              <Text style={styles.sepText}>ou</Text>
+              <View style={styles.sepLine} />
             </View>
-          )}
 
-          {(mode === 'login' || mode === 'register') && (
-            <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>
-                {mode === 'login' ? 'Se connecter' : 'Créer un compte'}
-              </Text>
+            {/* Email */}
+            <TouchableOpacity
+              style={styles.emailBtn}
+              onPress={() => setShowEmail(true)}
+            >
+              <Text style={styles.emailTxt}>✉️  Continuer avec Email</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <Text style={styles.sectionTitle}>
+              {isRegister ? 'Créer un compte' : 'Se connecter'}
+            </Text>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Adresse email</Text>
-                <TextInput
-                  style={styles.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="ton@email.com"
-                  placeholderTextColor={Colors.textMuted}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
+            <Text style={styles.inputLabel}>Adresse email</Text>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="ton@email.com"
+              placeholderTextColor="#999"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Mot de passe</Text>
-                <TextInput
-                  style={styles.input}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder={mode === 'register' ? 'Minimum 8 caractères' : '••••••••'}
-                  placeholderTextColor={Colors.textMuted}
-                  secureTextEntry
-                />
-              </View>
+            <Text style={styles.inputLabel}>Mot de passe</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              placeholder={isRegister ? 'Minimum 6 caractères' : '••••••••'}
+              placeholderTextColor="#999"
+              secureTextEntry
+            />
 
-              <TouchableOpacity
-                style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
-                onPress={mode === 'login' ? handleSignIn : handleSignUp}
-                disabled={loading}
-                activeOpacity={0.85}
-              >
-                {loading ? (
-                  <ActivityIndicator color={Colors.white} />
-                ) : (
-                  <Text style={styles.primaryButtonText}>
-                    {mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
-                  </Text>
-                )}
-              </TouchableOpacity>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
 
-              <View style={styles.toggleRow}>
-                <Text style={styles.toggleText}>
-                  {mode === 'login'
-                    ? "Pas encore de compte ? "
-                    : "Déjà un compte ? "}
+            <TouchableOpacity
+              style={[styles.emailBtn, loading && { opacity: 0.6 }]}
+              onPress={handleAuth}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.emailTxt}>
+                  {isRegister ? 'Créer mon compte' : 'Se connecter'}
                 </Text>
-                <TouchableOpacity
-                  onPress={() =>
-                    setMode(mode === 'login' ? 'register' : 'login')
-                  }
-                >
-                  <Text style={styles.toggleLink}>
-                    {mode === 'login' ? "S'inscrire" : 'Se connecter'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              )}
+            </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={() => setMode('buttons')}
-                style={styles.backButton}
-              >
-                <Text style={styles.backButtonText}>← Retour</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+            <TouchableOpacity
+              onPress={() => { setIsRegister(!isRegister); setError(''); }}
+              style={styles.switchBtn}
+            >
+              <Text style={styles.switchTxt}>
+                {isRegister
+                  ? 'Déjà un compte ? '
+                  : 'Pas encore de compte ? '}
+                <Text style={styles.switchAccent}>
+                  {isRegister ? 'Se connecter' : "S'inscrire"}
+                </Text>
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => { setShowEmail(false); setError(''); }}
+              style={styles.backBtn}
+            >
+              <Text style={styles.backTxt}>← Retour</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        <Text style={styles.legal}>
+          En continuant, tu acceptes nos Conditions d'utilisation et notre Politique de confidentialité.
+        </Text>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.darkGreen,
-  },
-  flex: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: Colors.darkGreen },
+  content: { flexGrow: 1 },
   header: {
-    paddingHorizontal: 32,
-    paddingBottom: 24,
-    alignItems: 'center',
-    minHeight: height * 0.35,
-    justifyContent: 'center',
+    paddingTop: 60, paddingBottom: 40,
+    alignItems: 'center', backgroundColor: Colors.darkGreen,
   },
-  logo: {
-    width: 100,
-    height: 130,
-    alignSelf: 'center',
-    marginBottom: 12,
-  },
-  welcomeText: {
-    color: Colors.white,
-    fontSize: 15,
-    opacity: 0.8,
-    textAlign: 'center',
-  },
-  appName: {
-    color: Colors.lime,
-    fontSize: 26,
-    fontWeight: '800',
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-  bottomCard: {
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    minHeight: height * 0.65,
-    paddingTop: 32,
-    paddingHorizontal: 28,
-    paddingBottom: 40,
-  },
-  buttonsSection: {
-    gap: 12,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: 16,
-  },
-  appleButton: {
-    backgroundColor: Colors.black,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  appleButtonText: {
-    color: Colors.white,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  googleButton: {
-    backgroundColor: Colors.white,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-  },
-  googleButtonText: {
-    color: Colors.textPrimary,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  separator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginVertical: 4,
-  },
-  separatorLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  separatorText: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    fontWeight: '500',
-  },
-  emailButton: {
-    backgroundColor: Colors.darkGreen,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  emailButtonText: {
-    color: Colors.white,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  legalText: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 18,
-  },
-  legalLink: {
-    color: Colors.darkGreen,
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
+  logo: { width: 100, height: 100, borderRadius: 16, marginBottom: 16 },
+  welcome: { color: '#ffffffaa', fontSize: 14 },
+  title: { color: Colors.lime, fontSize: 28, fontWeight: '800', marginTop: 2 },
+  subtitle: { color: '#ffffff80', fontSize: 13, marginTop: 6 },
+
   formSection: {
-    gap: 16,
+    flex: 1, backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    paddingHorizontal: 24, paddingTop: 28, paddingBottom: 40,
   },
-  inputGroup: {
-    gap: 6,
+  sectionTitle: { fontSize: 22, fontWeight: '700', color: '#111', marginBottom: 4 },
+  sectionSubtitle: { fontSize: 13, color: '#888', marginBottom: 24 },
+
+  appleBtn: {
+    backgroundColor: '#000', borderRadius: 14, paddingVertical: 16,
+    alignItems: 'center', marginBottom: 12,
   },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  appleTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+  googleBtn: {
+    backgroundColor: '#fff', borderRadius: 14, paddingVertical: 16,
+    alignItems: 'center', borderWidth: 1.5, borderColor: '#e0e0e0', marginBottom: 12,
   },
+  googleTxt: { color: '#333', fontWeight: '700', fontSize: 15 },
+
+  sep: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
+  sepLine: { flex: 1, height: 1, backgroundColor: '#e8e8e8' },
+  sepText: { marginHorizontal: 12, color: '#aaa', fontSize: 12 },
+
+  emailBtn: {
+    backgroundColor: Colors.darkGreen, borderRadius: 14, paddingVertical: 16,
+    alignItems: 'center', marginBottom: 12,
+  },
+  emailTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+  inputLabel: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 6, marginTop: 12 },
   input: {
-    backgroundColor: Colors.background,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: Colors.textPrimary,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    backgroundColor: '#f5f5f5', borderRadius: 12, paddingHorizontal: 16,
+    paddingVertical: 14, fontSize: 15, color: '#111', borderWidth: 1, borderColor: '#e8e8e8',
   },
-  primaryButton: {
-    backgroundColor: Colors.darkGreen,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  primaryButtonDisabled: {
-    opacity: 0.6,
-  },
-  primaryButtonText: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  toggleText: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  toggleLink: {
-    fontSize: 14,
-    color: Colors.darkGreen,
-    fontWeight: '700',
-  },
-  backButton: {
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  backButtonText: {
-    color: Colors.textMuted,
-    fontSize: 14,
-  },
+  error: { color: '#E8612D', fontSize: 13, textAlign: 'center', marginTop: 12 },
+
+  switchBtn: { alignItems: 'center', marginTop: 16 },
+  switchTxt: { color: '#888', fontSize: 13 },
+  switchAccent: { color: Colors.darkGreen, fontWeight: '700' },
+
+  backBtn: { alignItems: 'center', marginTop: 12 },
+  backTxt: { color: '#aaa', fontSize: 13 },
+
+  legal: { color: '#bbb', fontSize: 10, textAlign: 'center', marginTop: 24, lineHeight: 14 },
 });
