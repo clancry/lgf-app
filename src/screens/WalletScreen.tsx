@@ -8,10 +8,11 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Session } from '@supabase/supabase-js';
-import { getProfile, getTransactions, rechargeWallet } from '../lib/supabase';
+import { getProfile, getTransactions, supabase } from '../lib/supabase';
 import { Colors } from '../theme/colors';
 
 interface WalletScreenProps {
@@ -22,7 +23,7 @@ interface Transaction {
   id: string;
   amount: number;
   type: string;
-  status: string;
+  payment_method?: string;
   description?: string;
   created_at: string;
 }
@@ -62,31 +63,18 @@ export default function WalletScreen({ session }: WalletScreenProps) {
     loadData();
   }, [loadData]);
 
+  function showAlert(title: string, message: string) {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  }
+
   async function handleRecharge(amount: number) {
     if (!session?.user) return;
-
-    Alert.alert(
-      `Recharger ${amount}€`,
-      `Confirmes-tu la recharge de ${amount}€ sur ton Wallet ?`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Confirmer',
-          onPress: async () => {
-            setRechargeLoading(amount);
-            const { error } = await rechargeWallet(session.user!.id, amount);
-            setRechargeLoading(null);
-            if (error) {
-              Alert.alert('Erreur', 'La recharge a échoué. Réessaie.');
-            } else {
-              setBalance((prev) => prev + amount);
-              await loadData();
-              Alert.alert('Recharge réussie !', `${amount}€ ont été ajoutés à ton Wallet.`);
-            }
-          },
-        },
-      ]
-    );
+    // Recharge simulée — fonctionnalité paiement à venir
+    showAlert('Fonctionnalité disponible prochainement', `La recharge de ${amount}€ sera bientôt disponible.`);
   }
 
   function formatAmount(amount: number, type: string): string {
@@ -194,28 +182,9 @@ export default function WalletScreen({ session }: WalletScreenProps) {
             </View>
             <View style={styles.transactionInfo}>
               <Text style={styles.transactionDescription}>
-                {item.description ?? item.type}
+                {item.description ?? item.type ?? 'Transaction'}
               </Text>
               <Text style={styles.transactionDate}>{formatDate(item.created_at)}</Text>
-              <View
-                style={[
-                  styles.statusBadge,
-                  item.status === 'completed'
-                    ? styles.statusCompleted
-                    : styles.statusPending,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusText,
-                    item.status === 'completed'
-                      ? styles.statusTextCompleted
-                      : styles.statusTextPending,
-                  ]}
-                >
-                  {item.status === 'completed' ? 'Effectué' : 'En attente'}
-                </Text>
-              </View>
             </View>
             <Text
               style={[

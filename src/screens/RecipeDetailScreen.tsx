@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Modal,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp } from '@react-navigation/native';
@@ -29,18 +30,17 @@ interface Recipe {
   name: string;
   description?: string;
   calories?: number;
-  proteines?: number;
-  glucides?: number;
-  lipides?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
   category?: string;
   regime?: string;
   likes?: number;
   image_url?: string;
-  prep_time?: number;
-  ingredients?: string[];
-  instructions?: string;
-  servings?: number;
-  sauces?: string[];
+  price?: number;
+  ingredients?: any;
+  is_available?: boolean;
 }
 
 const MEAL_TYPES = [
@@ -94,6 +94,14 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
     setLikeLoading(false);
   }
 
+  function showAlert(title: string, message: string) {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  }
+
   async function handleAddToPlan(mealType: string) {
     if (!currentUser) return;
     setAddingToPlan(true);
@@ -102,9 +110,9 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
     setAddingToPlan(false);
     setShowAddToPlan(false);
     if (error) {
-      Alert.alert('Erreur', 'Impossible d\'ajouter au plan. Réessaie.');
+      showAlert('Erreur', 'Impossible d\'ajouter au plan. Réessaie.');
     } else {
-      Alert.alert('Ajouté !', `${recipe?.name} a été ajouté à ton plan du jour.`);
+      showAlert('Ajouté !', `${recipe?.name} a été ajouté à ton plan du jour.`);
     }
   }
 
@@ -192,9 +200,9 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
           <View style={styles.macrosCard}>
             {[
               { label: 'Calories', value: `${recipe.calories ?? 0}`, unit: 'kcal', color: Colors.darkGreen },
-              { label: 'Protéines', value: `${recipe.proteines ?? 0}`, unit: 'g', color: Colors.proteines },
-              { label: 'Glucides', value: `${recipe.glucides ?? 0}`, unit: 'g', color: Colors.glucides },
-              { label: 'Lipides', value: `${recipe.lipides ?? 0}`, unit: 'g', color: Colors.lipides },
+              { label: 'Protéines', value: `${recipe.protein ?? 0}`, unit: 'g', color: Colors.proteines },
+              { label: 'Glucides', value: `${recipe.carbs ?? 0}`, unit: 'g', color: Colors.glucides },
+              { label: 'Lipides', value: `${recipe.fat ?? 0}`, unit: 'g', color: Colors.lipides },
             ].map(({ label, value, unit, color }) => (
               <View key={label} style={styles.macroItem}>
                 <Text style={[styles.macroValue, { color }]}>{value}</Text>
@@ -205,13 +213,18 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
           </View>
 
           {/* Ingredients */}
-          {recipe.ingredients && recipe.ingredients.length > 0 && (
+          {recipe.ingredients && (
+            Array.isArray(recipe.ingredients) ? recipe.ingredients.length > 0 : Object.keys(recipe.ingredients).length > 0
+          ) && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Ingrédients 🛒</Text>
-              {recipe.ingredients.map((ing: string, i: number) => (
+              {(Array.isArray(recipe.ingredients)
+                ? recipe.ingredients
+                : Object.entries(recipe.ingredients).map(([k, v]) => `${k}: ${v}`)
+              ).map((ing: any, i: number) => (
                 <View key={i} style={styles.ingredientRow}>
                   <View style={styles.ingredientDot} />
-                  <Text style={styles.ingredientText}>{ing}</Text>
+                  <Text style={styles.ingredientText}>{String(ing)}</Text>
                 </View>
               ))}
             </View>

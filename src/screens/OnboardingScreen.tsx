@@ -83,14 +83,22 @@ export default function OnboardingScreen({ session, onComplete }: OnboardingScre
     setData((prev) => ({ ...prev, [key]: value }));
   }
 
+  function showAlert(title: string, message: string) {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  }
+
   function nextStep() {
     if (step === 0 && !data.regime) {
-      Alert.alert('Choix requis', 'Sélectionne ton régime pour continuer.');
+      showAlert('Choix requis', 'Sélectionne ton régime pour continuer.');
       return;
     }
     if (step === 1) {
       if (!data.first_name || !data.last_name) {
-        Alert.alert('Informations manquantes', 'Prénom et nom sont requis.');
+        showAlert('Informations manquantes', 'Prénom et nom sont requis.');
         return;
       }
     }

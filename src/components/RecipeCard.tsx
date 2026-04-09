@@ -18,13 +18,15 @@ interface Recipe {
   id: string;
   name: string;
   calories?: number;
-  proteines?: number;
-  glucides?: number;
-  lipides?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
   category?: string;
   regime?: string;
   likes?: number;
-  prep_time?: number;
+  price?: number;
+  is_available?: boolean;
 }
 
 interface RecipeCardProps {
@@ -122,10 +124,10 @@ export default function RecipeCard({
               <Text style={styles.macroUnit}>kcal</Text>
             </View>
           )}
-          {recipe.proteines !== undefined && (
+          {recipe.protein !== undefined && (
             <View style={styles.macroItem}>
               <Text style={[styles.macroValue, { color: Colors.proteines }]}>
-                {recipe.proteines}g
+                {recipe.protein}g
               </Text>
               <Text style={styles.macroUnit}>prot.</Text>
             </View>
@@ -134,8 +136,8 @@ export default function RecipeCard({
 
         {/* Prep time + like */}
         <View style={styles.footer}>
-          {recipe.prep_time && (
-            <Text style={styles.prepTime}>⏱️ {recipe.prep_time}min</Text>
+          {recipe.price !== undefined && recipe.price > 0 && (
+            <Text style={styles.prepTime}>{recipe.price.toFixed(2)}€</Text>
           )}
           <TouchableOpacity
             style={styles.likeButton}

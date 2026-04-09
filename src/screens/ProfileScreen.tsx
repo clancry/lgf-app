@@ -9,10 +9,11 @@ import {
   ActivityIndicator,
   Switch,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Session } from '@supabase/supabase-js';
-import { getProfile, signOut } from '../lib/supabase';
+import { getProfile, supabase } from '../lib/supabase';
 import { Colors } from '../theme/colors';
 
 interface ProfileScreenProps {
@@ -25,12 +26,12 @@ interface Profile {
   last_name?: string;
   email?: string;
   regime?: string;
-  objectif?: string;
-  taille?: number;
-  poids?: number;
+  goal?: string;
+  height?: number;
+  weight?: number;
   age?: number;
-  genre?: string;
-  niveau_activite?: string;
+  gender?: string;
+  activity_level?: string;
   wallet_balance?: number;
   is_premium?: boolean;
   fitness_park?: string;
@@ -42,7 +43,7 @@ const REGIME_INFO: Record<string, { label: string; color: string; emoji: string 
   equilibre: { label: 'Équilibré', color: Colors.success, emoji: '⚖️' },
 };
 
-const NIVEAU_LABELS: Record<string, string> = {
+const ACTIVITY_LABELS: Record<string, string> = {
   sedentaire: 'Sédentaire',
   modere: 'Modéré',
   actif: 'Actif',
@@ -67,23 +68,40 @@ export default function ProfileScreen({ session }: ProfileScreenProps) {
     loadProfile();
   }, [loadProfile]);
 
+  function showAlert(title: string, message: string) {
+    if (Platform.OS === 'web') {
+      window.alert(title + '\n' + message);
+    } else {
+      showAlert(title, message);
+    }
+  }
+
   async function handleSignOut() {
-    Alert.alert(
-      'Se déconnecter ?',
-      'Tu vas être redirigé vers l\'écran de connexion.',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Déconnexion',
-          style: 'destructive',
-          onPress: async () => {
-            setSigningOut(true);
-            await signOut();
-            setSigningOut(false);
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm("Se déconnecter ?\nTu vas être redirigé vers l'écran de connexion.");
+      if (confirmed) {
+        setSigningOut(true);
+        await supabase.auth.signOut();
+        setSigningOut(false);
+      }
+    } else {
+      showAlert(
+        'Se déconnecter ?',
+        "Tu vas être redirigé vers l'écran de connexion.",
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text: 'Déconnexion',
+            style: 'destructive',
+            onPress: async () => {
+              setSigningOut(true);
+              await supabase.auth.signOut();
+              setSigningOut(false);
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   }
 
   if (loading) {
@@ -142,12 +160,12 @@ export default function ProfileScreen({ session }: ProfileScreenProps) {
         {/* Body stats */}
         <View style={styles.statsCard}>
           {[
-            { label: 'Taille', value: profile?.taille ? `${profile.taille} cm` : '—' },
-            { label: 'Poids', value: profile?.poids ? `${profile.poids} kg` : '—' },
+            { label: 'Taille', value: profile?.height ? `${profile.height} cm` : '—' },
+            { label: 'Poids', value: profile?.weight ? `${profile.weight} kg` : '—' },
             { label: 'Âge', value: profile?.age ? `${profile.age} ans` : '—' },
             {
               label: 'Activité',
-              value: NIVEAU_LABELS[profile?.niveau_activite ?? ''] ?? '—',
+              value: ACTIVITY_LABELS[profile?.activity_level ?? ''] ?? '—',
             },
           ].map(({ label, value }) => (
             <View key={label} style={styles.statItem}>
@@ -178,19 +196,19 @@ export default function ProfileScreen({ session }: ProfileScreenProps) {
             emoji="📸"
             label="Body Scan"
             subtitle="Analyse ta composition corporelle"
-            onPress={() => Alert.alert('Bientôt disponible', 'La fonctionnalité Body Scan arrive prochainement.')}
+            onPress={() => showAlert('Bientôt disponible', 'La fonctionnalité Body Scan arrive prochainement.')}
           />
           <MenuRow
             emoji="⌚"
             label="Smartwatch"
             subtitle="Connecter Apple Watch / Garmin"
-            onPress={() => Alert.alert('Bientôt disponible', 'La synchronisation Smartwatch arrive prochainement.')}
+            onPress={() => showAlert('Bientôt disponible', 'La synchronisation Smartwatch arrive prochainement.')}
           />
           <MenuRow
             emoji="📊"
             label="Mes statistiques"
             subtitle="Calories, macros, progression"
-            onPress={() => Alert.alert('Bientôt disponible', 'Les statistiques détaillées arrivent prochainement.')}
+            onPress={() => showAlert('Bientôt disponible', 'Les statistiques détaillées arrivent prochainement.')}
           />
         </View>
 
@@ -202,14 +220,14 @@ export default function ProfileScreen({ session }: ProfileScreenProps) {
             label="Passer Premium"
             subtitle="Accès illimité à toutes les recettes"
             badge="Bientôt"
-            onPress={() => Alert.alert('Premium', 'La souscription Premium sera disponible prochainement.')}
+            onPress={() => showAlert('Premium', 'La souscription Premium sera disponible prochainement.')}
             highlight
           />
           <MenuRow
             emoji="💳"
             label="Gérer mon abonnement"
             subtitle="Voir et modifier mes formules"
-            onPress={() => Alert.alert('Info', 'Aucun abonnement actif pour le moment.')}
+            onPress={() => showAlert('Info', 'Aucun abonnement actif pour le moment.')}
           />
         </View>
 
@@ -220,25 +238,25 @@ export default function ProfileScreen({ session }: ProfileScreenProps) {
             emoji="✏️"
             label="Modifier mon profil"
             subtitle="Nom, objectifs, mesures"
-            onPress={() => Alert.alert('Bientôt disponible', 'La modification de profil sera disponible prochainement.')}
+            onPress={() => showAlert('Bientôt disponible', 'La modification de profil sera disponible prochainement.')}
           />
           <MenuRow
             emoji="🔔"
             label="Notifications"
             subtitle="Gérer mes alertes"
-            onPress={() => Alert.alert('Bientôt disponible', 'Les paramètres de notifications arrivent prochainement.')}
+            onPress={() => showAlert('Bientôt disponible', 'Les paramètres de notifications arrivent prochainement.')}
           />
           <MenuRow
             emoji="🔒"
             label="Mot de passe"
             subtitle="Modifier mon mot de passe"
-            onPress={() => Alert.alert('Bientôt disponible', 'La modification du mot de passe arrive prochainement.')}
+            onPress={() => showAlert('Bientôt disponible', 'La modification du mot de passe arrive prochainement.')}
           />
           <MenuRow
             emoji="🙋"
             label="Support"
             subtitle="Besoin d'aide ?"
-            onPress={() => Alert.alert('Support', 'Contacte-nous à support@lagamellefit.com')}
+            onPress={() => showAlert('Support', 'Contacte-nous à support@lagamellefit.com')}
           />
         </View>
 

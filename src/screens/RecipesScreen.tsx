@@ -26,14 +26,15 @@ interface Recipe {
   id: string;
   name: string;
   calories?: number;
-  proteines?: number;
-  glucides?: number;
-  lipides?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
   category?: string;
   regime?: string;
   likes?: number;
   image_url?: string;
-  prep_time?: number;
+  price?: number;
+  is_available?: boolean;
 }
 
 const REGIMES = [

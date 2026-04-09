@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Session } from '@supabase/supabase-js';
@@ -152,6 +153,14 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
     setShowResult(false);
   }
 
+  function showAlert(title: string, message: string) {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  }
+
   async function submitPost() {
     if (!newPost.trim() || !session?.user) return;
     setPostLoading(true);
@@ -160,7 +169,7 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
       setNewPost('');
       await loadFeed();
     } else {
-      Alert.alert('Erreur', 'Impossible de publier.');
+      showAlert('Erreur', 'Impossible de publier.');
     }
     setPostLoading(false);
   }
@@ -411,9 +420,7 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
               </View>
               <TouchableOpacity
                 style={styles.joinButton}
-                onPress={() =>
-                  Alert.alert('Défi rejoint !', `Tu as rejoint "${c.title}". Bonne chance !`)
-                }
+                onPress={() => showAlert('Défi rejoint !', `Tu as rejoint "${c.title}". Bonne chance !`)}
               >
                 <Text style={styles.joinButtonText}>Rejoindre</Text>
               </TouchableOpacity>

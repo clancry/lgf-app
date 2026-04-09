@@ -26,16 +26,16 @@ interface Profile {
   first_name?: string;
   regime?: string;
   wallet_balance?: number;
-  objectif?: string;
+  goal?: string;
 }
 
 interface Recipe {
   id: string;
   name: string;
   calories?: number;
-  proteines?: number;
-  glucides?: number;
-  lipides?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
   category?: string;
   regime?: string;
 }
@@ -73,44 +73,17 @@ export default function DashboardScreen({ session }: DashboardScreenProps) {
       const { profile: p } = await getProfile(session.user.id);
       setProfile(p);
 
-      // Load today's breakfast from meal_plans
-      const today = new Date().toISOString().split('T')[0];
-      const { data: plan } = await supabase
-        .from('meal_plans')
-        .select('*, recipes(*)')
-        .eq('user_id', session.user.id)
-        .eq('date', today);
-
-      if (plan && plan.length > 0) {
-        const breakfastEntry = plan.find((m: any) => m.meal_type === 'petit_dejeuner');
-        if (breakfastEntry?.recipes) {
-          setBreakfast(breakfastEntry.recipes);
-        }
-        // Sum calories
-        const total = plan.reduce(
-          (sum: number, m: any) => sum + (m.recipes?.calories ?? 0),
-          0
-        );
-        setCaloriesConsumed(total);
-        const pSum = plan.reduce((s: number, m: any) => s + (m.recipes?.proteines ?? 0), 0);
-        const gSum = plan.reduce((s: number, m: any) => s + (m.recipes?.glucides ?? 0), 0);
-        const lSum = plan.reduce((s: number, m: any) => s + (m.recipes?.lipides ?? 0), 0);
-        setMacros({ p: pSum, g: gSum, l: lSum });
-      }
-
-      // If no breakfast in meal plan, get a random breakfast recipe
-      if (!breakfast) {
-        const regime = p?.regime ?? 'equilibre';
-        const { data: recipes } = await supabase
-          .from('recipes')
-          .select('*')
-          .eq('category', 'petit_dejeuner')
-          .eq('regime', regime)
-          .limit(10);
-        if (recipes && recipes.length > 0) {
-          const idx = new Date().getDate() % recipes.length;
-          setBreakfast(recipes[idx]);
-        }
+      // Load a breakfast recipe for the user's regime
+      const regime = p?.regime ?? 'equilibre';
+      const { data: recipes } = await supabase
+        .from('recipes')
+        .select('*')
+        .eq('category', 'petit_dejeuner')
+        .eq('regime', regime)
+        .limit(10);
+      if (recipes && recipes.length > 0) {
+        const idx = new Date().getDate() % recipes.length;
+        setBreakfast(recipes[idx]);
       }
     } finally {
       setLoading(false);

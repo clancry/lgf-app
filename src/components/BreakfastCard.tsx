@@ -12,11 +12,12 @@ interface Recipe {
   id: string;
   name: string;
   calories?: number;
-  proteines?: number;
-  glucides?: number;
-  lipides?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
   category?: string;
-  prep_time?: number;
+  price?: number;
 }
 
 interface BreakfastCardProps {
@@ -92,19 +93,19 @@ export default function BreakfastCard({ recipe, onShuffle }: BreakfastCardProps)
             },
             {
               label: 'Protéines',
-              value: recipe.proteines ?? 0,
+              value: recipe.protein ?? 0,
               unit: 'g',
               color: Colors.proteines,
             },
             {
               label: 'Glucides',
-              value: recipe.glucides ?? 0,
+              value: recipe.carbs ?? 0,
               unit: 'g',
               color: Colors.glucides,
             },
             {
               label: 'Lipides',
-              value: recipe.lipides ?? 0,
+              value: recipe.fat ?? 0,
               unit: 'g',
               color: Colors.lipides,
             },
