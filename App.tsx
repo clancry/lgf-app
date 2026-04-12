@@ -15,6 +15,9 @@ import LoginScreen from './src/screens/LoginScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
 import DailyQuizScreen from './src/screens/DailyQuizScreen';
+import CheatMealScreen from './src/screens/CheatMealScreen';
+import CoachModeScreen from './src/screens/CoachModeScreen';
+import { CoachMode } from './src/lib/coach-modes';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -31,6 +34,9 @@ type AppState = 'loading' | 'splash' | 'login' | 'onboarding' | 'dailyquiz' | 'm
 export default function App() {
   const [appState, setAppState] = useState<AppState>('loading');
   const [session, setSession] = useState<Session | null>(null);
+  const [showCheatMeal, setShowCheatMeal] = useState(false);
+  const [showCoachMode, setShowCoachMode] = useState(false);
+  const [coachMode, setCoachMode] = useState<CoachMode>('soft');
 
   useEffect(() => {
     // Listen for auth state changes
@@ -99,6 +105,34 @@ export default function App() {
     );
   }
 
+  // Modals plein écran
+  if (showCheatMeal) {
+    return (
+      <SafeAreaProvider>
+        <CheatMealScreen
+          session={session}
+          coachMode={coachMode}
+          regime="seche"
+          dailyCalories={1800}
+          onClose={() => setShowCheatMeal(false)}
+        />
+      </SafeAreaProvider>
+    );
+  }
+
+  if (showCoachMode) {
+    return (
+      <SafeAreaProvider>
+        <CoachModeScreen
+          session={session}
+          currentMode={coachMode}
+          onModeChange={(mode) => setCoachMode(mode)}
+          onClose={() => setShowCoachMode(false)}
+        />
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
@@ -132,7 +166,11 @@ export default function App() {
           {appState === 'main' && (
             <>
               <Stack.Screen name="MainTabs">
-                {() => <TabNavigator session={session} />}
+                {() => <TabNavigator
+                  session={session}
+                  onCheatMeal={() => setShowCheatMeal(true)}
+                  onCoachMode={() => setShowCoachMode(true)}
+                />}
               </Stack.Screen>
               <Stack.Screen
                 name="RecipeDetail"

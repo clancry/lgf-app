@@ -24,6 +24,8 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 interface TabNavigatorProps {
   session: Session | null;
+  onCheatMeal?: () => void;
+  onCoachMode?: () => void;
 }
 
 // Simple icon component using text emoji
@@ -41,7 +43,7 @@ function TabIcon({
   );
 }
 
-export function TabNavigator({ session }: TabNavigatorProps) {
+export function TabNavigator({ session, onCheatMeal, onCoachMode }: TabNavigatorProps) {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -61,7 +63,7 @@ export function TabNavigator({ session }: TabNavigatorProps) {
           ),
         }}
       >
-        {() => <DashboardScreen session={session} />}
+        {() => <DashboardScreen session={session} onCheatMeal={onCheatMeal} onCoachMode={onCoachMode} />}
       </Tab.Screen>
 
       <Tab.Screen
@@ -130,8 +132,9 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
+    marginTop: 2,
   },
   iconContainer: {
     width: 36,

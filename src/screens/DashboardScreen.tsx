@@ -18,6 +18,8 @@ const { width } = Dimensions.get('window');
 
 interface DashboardScreenProps {
   session: Session | null;
+  onCheatMeal?: () => void;
+  onCoachMode?: () => void;
 }
 
 interface Profile {
@@ -26,6 +28,7 @@ interface Profile {
   regime?: string;
   wallet_balance?: number;
   goal?: string;
+  coach_mode?: string;
 }
 
 const REGIME_LABELS: Record<string, string> = {
@@ -47,7 +50,7 @@ const CALORIE_GOALS: Record<string, number> = {
   equilibre: 2200,
 };
 
-export default function DashboardScreen({ session }: DashboardScreenProps) {
+export default function DashboardScreen({ session, onCheatMeal, onCoachMode }: DashboardScreenProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [caloriesConsumed, setCaloriesConsumed] = useState(0);
   const [macros, setMacros] = useState({ p: 0, g: 0, l: 0 });
@@ -221,14 +224,28 @@ export default function DashboardScreen({ session }: DashboardScreenProps) {
           </TouchableOpacity>
         </View>
 
+        {/* STOP Cheat Meal */}
+        <TouchableOpacity
+          style={styles.cheatMealBtn}
+          onPress={() => onCheatMeal?.()}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.cheatMealEmoji}>🚨</Text>
+          <View style={styles.cheatMealText}>
+            <Text style={styles.cheatMealTitle}>STOP Cheat Meal</Text>
+            <Text style={styles.cheatMealSub}>Tu es sur le point de craquer ? Je t'aide.</Text>
+          </View>
+          <Text style={styles.cheatMealArrow}>›</Text>
+        </TouchableOpacity>
+
         {/* Quick access cards */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Accès rapide</Text>
           <View style={styles.quickCards}>
-            <TouchableOpacity style={[styles.quickCard, styles.quickCardGreen]}>
-              <Text style={styles.quickCardEmoji}>⌚</Text>
-              <Text style={styles.quickCardTitle}>Smartwatch</Text>
-              <Text style={styles.quickCardSubtitle}>Connecter Apple Watch</Text>
+            <TouchableOpacity style={[styles.quickCard, styles.quickCardGreen]} onPress={() => onCoachMode?.()}>
+              <Text style={styles.quickCardEmoji}>{profile?.coach_mode === 'warrior' ? '⚔️' : profile?.coach_mode === 'challenger' ? '🔥' : profile?.coach_mode === 'sportif' ? '💪' : '🌱'}</Text>
+              <Text style={styles.quickCardTitle}>Mode Coach</Text>
+              <Text style={styles.quickCardSubtitle}>{profile?.coach_mode ? profile.coach_mode.charAt(0).toUpperCase() + profile.coach_mode.slice(1) : 'Soft'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.quickCard, styles.quickCardOrange]}>
               <Text style={styles.quickCardEmoji}>⭐</Text>
@@ -408,6 +425,20 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.lime + '15',
     lineHeight: 18,
   },
+  cheatMealBtn: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 4,
+  },
+  cheatMealEmoji: { fontSize: 28 },
+  cheatMealText: { flex: 1 },
+  cheatMealTitle: { fontSize: 16, fontWeight: '900', color: '#EF4444' },
+  cheatMealSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
+  cheatMealArrow: { fontSize: 22, color: 'rgba(255,255,255,0.4)' },
   quickCards: {
     flexDirection: 'row',
     gap: 12,
