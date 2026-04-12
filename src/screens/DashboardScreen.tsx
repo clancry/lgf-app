@@ -11,9 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Session } from '@supabase/supabase-js';
-import { supabase, getProfile } from '../lib/supabase';
+import { getProfile } from '../lib/supabase';
 import { Colors } from '../theme/colors';
-import BreakfastCard from '../components/BreakfastCard';
 
 const { width } = Dimensions.get('window');
 
@@ -27,17 +26,6 @@ interface Profile {
   regime?: string;
   wallet_balance?: number;
   goal?: string;
-}
-
-interface Recipe {
-  id: string;
-  name: string;
-  calories?: number;
-  protein?: number;
-  carbs?: number;
-  fat?: number;
-  category?: string;
-  regime?: string;
 }
 
 const REGIME_LABELS: Record<string, string> = {
@@ -61,7 +49,6 @@ const CALORIE_GOALS: Record<string, number> = {
 
 export default function DashboardScreen({ session }: DashboardScreenProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [breakfast, setBreakfast] = useState<Recipe | null>(null);
   const [caloriesConsumed, setCaloriesConsumed] = useState(0);
   const [macros, setMacros] = useState({ p: 0, g: 0, l: 0 });
   const [loading, setLoading] = useState(true);
@@ -73,18 +60,6 @@ export default function DashboardScreen({ session }: DashboardScreenProps) {
       const { profile: p } = await getProfile(session.user.id);
       setProfile(p);
 
-      // Load a breakfast recipe for the user's regime
-      const regime = p?.regime ?? 'equilibre';
-      const { data: recipes } = await supabase
-        .from('recipes')
-        .select('*')
-        .eq('category', 'petit_dejeuner')
-        .eq('regime', regime)
-        .limit(10);
-      if (recipes && recipes.length > 0) {
-        const idx = new Date().getDate() % recipes.length;
-        setBreakfast(recipes[idx]);
-      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -94,21 +69,6 @@ export default function DashboardScreen({ session }: DashboardScreenProps) {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  async function shuffleBreakfast() {
-    if (!session?.user || !profile) return;
-    const regime = profile.regime ?? 'equilibre';
-    const { data: recipes } = await supabase
-      .from('recipes')
-      .select('*')
-      .eq('category', 'petit_dejeuner')
-      .eq('regime', regime)
-      .limit(20);
-    if (recipes && recipes.length > 0) {
-      const idx = Math.floor(Math.random() * recipes.length);
-      setBreakfast(recipes[idx]);
-    }
-  }
 
   const calorieGoal = CALORIE_GOALS[profile?.regime ?? 'equilibre'];
   const calorieProgress = Math.min(caloriesConsumed / calorieGoal, 1);

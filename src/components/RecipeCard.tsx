@@ -27,6 +27,7 @@ interface Recipe {
   likes?: number;
   price?: number;
   is_available?: boolean;
+  ingredients?: any;
 }
 
 interface RecipeCardProps {
@@ -62,6 +63,15 @@ export default function RecipeCard({
   const [likeLoading, setLikeLoading] = useState(false);
   const [localLiked, setLocalLiked] = useState(liked);
   const [localLikes, setLocalLikes] = useState(recipe.likes ?? 0);
+
+  let ingredientsList: string[] = [];
+  try {
+    if (recipe.ingredients) {
+      ingredientsList = Array.isArray(recipe.ingredients)
+        ? recipe.ingredients
+        : JSON.parse(recipe.ingredients);
+    }
+  } catch { ingredientsList = []; }
 
   async function handleLike() {
     if (!session?.user || likeLoading) return;

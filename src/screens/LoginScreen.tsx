@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, Image,
-  StyleSheet, ScrollView, ActivityIndicator, Platform,
+  StyleSheet, ScrollView, ActivityIndicator, Platform, Alert,
 } from 'react-native';
 import { signInWithEmail, signUpWithEmail } from '../lib/supabase';
 import { Colors } from '../theme/colors';
@@ -45,7 +45,6 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     if (Platform.OS === 'web') {
       window.alert(`La connexion avec ${provider} sera disponible prochainement.`);
     } else {
-      const { Alert } = require('react-native');
       Alert.alert('Bientôt disponible', `La connexion avec ${provider} sera disponible prochainement.`);
     }
   };

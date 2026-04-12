@@ -99,7 +99,20 @@ export default function DailyQuizScreen({ session, onComplete }: DailyQuizScreen
   }
 
   function handleSkip() {
-    onComplete(0);
+    if (Platform.OS === 'web') {
+      if (window.confirm('Passer le quiz du jour ? Tu perdras ton streak.')) {
+        onComplete(0);
+      }
+    } else {
+      Alert.alert(
+        'Passer le quiz ?',
+        'Tu perdras ton streak du jour.',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Passer', onPress: () => onComplete(0) },
+        ]
+      );
+    }
   }
 
   function handleFinish() {

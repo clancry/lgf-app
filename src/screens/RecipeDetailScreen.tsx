@@ -70,7 +70,16 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
     setLoading(true);
     const { recipe: data } = await getRecipeById(recipeId);
     if (data) {
-      setRecipe(data);
+      // Safely parse ingredients if stored as JSON string
+      let parsedIngredients = data.ingredients;
+      if (typeof data.ingredients === 'string') {
+        try {
+          parsedIngredients = JSON.parse(data.ingredients);
+        } catch {
+          parsedIngredients = [];
+        }
+      }
+      setRecipe({ ...data, ingredients: parsedIngredients });
       setLikesCount(data.likes ?? 0);
       // Check if user liked
       const { data: { user } } = await supabase.auth.getUser();

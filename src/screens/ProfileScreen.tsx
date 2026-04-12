@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Switch,
   RefreshControl,
   Platform,
 } from 'react-native';
@@ -72,7 +71,7 @@ export default function ProfileScreen({ session }: ProfileScreenProps) {
     if (Platform.OS === 'web') {
       window.alert(title + '\n' + message);
     } else {
-      showAlert(title, message);
+      Alert.alert(title, message);
     }
   }
 
@@ -85,7 +84,7 @@ export default function ProfileScreen({ session }: ProfileScreenProps) {
         setSigningOut(false);
       }
     } else {
-      showAlert(
+      Alert.alert(
         'Se déconnecter ?',
         "Tu vas être redirigé vers l'écran de connexion.",
         [
@@ -173,6 +172,17 @@ export default function ProfileScreen({ session }: ProfileScreenProps) {
               <Text style={styles.statLabel}>{label}</Text>
             </View>
           ))}
+        </View>
+
+        {/* FIT Points */}
+        <View style={styles.fitPointsRow}>
+          <View style={styles.fitPointsInfo}>
+            <Text style={styles.fitPointsLabel}>FIT Points</Text>
+            <Text style={styles.fitPointsValue}>350 pts</Text>
+          </View>
+          <View style={styles.fitLevelBadge}>
+            <Text style={styles.fitLevelText}>🥇 Athlète</Text>
+          </View>
         </View>
 
         {/* Wallet summary */}
@@ -415,6 +425,45 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textMuted,
     fontWeight: '600',
+  },
+  fitPointsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderRadius: 14,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  fitPointsInfo: {
+    gap: 2,
+  },
+  fitPointsLabel: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    fontWeight: '600',
+  },
+  fitPointsValue: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: Colors.darkGreen,
+  },
+  fitLevelBadge: {
+    backgroundColor: Colors.lime,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  fitLevelText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.darkGreen,
   },
   walletRow: {
     flexDirection: 'row',

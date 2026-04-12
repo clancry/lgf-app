@@ -570,6 +570,7 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
             </View>
           ) : (
             <View>
+              {!currentQ ? null : (<>
               {/* Progress dots */}
               <View style={styles.progressDots}>
                 {quizQuestions.map((_, i) => (
@@ -671,8 +672,8 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
                   </Text>
                 </TouchableOpacity>
               )}
+              </>)}
             </View>
-          )}
           )}
         </ScrollView>
       )}
