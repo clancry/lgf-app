@@ -1,4 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from 'react';
 import {
   View,
   Text,
@@ -6,11 +11,19 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Animated,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Session } from '@supabase/supabase-js';
 import { Colors } from '../theme/colors';
+import type { CoachMode } from '../theme/colors';
 import { supabase } from '../lib/supabase';
+import { getCoachMessage } from '../lib/coach-modes';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -205,19 +218,291 @@ function todayFR(): string {
   });
 }
 
+function todayISO(): string {
+  return new Date().toISOString().split('T')[0] as string;
+}
+
+function currentHour(): number {
+  return new Date().getHours();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Props
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface DayPlanScreenProps {
   session: Session | null;
+  coachMode?: CoachMode; // nouveau
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EditMealSheet — bottom sheet to modify a slot
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface EditMealSheetProps {
+  slot: MealSlot;
+  onConfirm: (updated: Partial<MealSlot>) => void;
+  onClose: () => void;
+}
+
+function EditMealSheet({ slot, onConfirm, onClose }: EditMealSheetProps) {
+  const [description, setDescription] = useState(slot.recipeName ?? slot.type);
+  const [kcal, setKcal]               = useState(String(slot.calories));
+  const [protein, setProtein]         = useState(String(slot.protein));
+  const [carbs, setCarbs]             = useState(String(slot.carbs));
+  const [fat, setFat]                 = useState(String(slot.fat));
+
+  const handleConfirm = () => {
+    onConfirm({
+      recipeName: description.trim() || slot.type,
+      calories:   parseInt(kcal,   10) || slot.calories,
+      protein:    parseInt(protein, 10) || slot.protein,
+      carbs:      parseInt(carbs,   10) || slot.carbs,
+      fat:        parseInt(fat,     10) || slot.fat,
+    });
+    onClose();
+  };
+
+  return (
+    <Modal
+      visible
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <TouchableOpacity
+        style={sheetStyles.backdrop}
+        activeOpacity={1}
+        onPress={onClose}
+      />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={sheetStyles.keyboardView}
+      >
+        <View style={sheetStyles.sheet}>
+          {/* Handle */}
+          <View style={sheetStyles.handle} />
+
+          <Text style={sheetStyles.title}>Modifier ce repas</Text>
+          <Text style={sheetStyles.subtitle}>{slot.type} · {formatDisplayTime(slot.time)}</Text>
+
+          {/* Description */}
+          <Text style={sheetStyles.fieldLabel}>Qu'as-tu mangé ?</Text>
+          <TextInput
+            style={sheetStyles.input}
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Ex : Poulet + riz + brocolis..."
+            placeholderTextColor={Colors.textMuted}
+            multiline
+          />
+
+          {/* Macros row */}
+          <View style={sheetStyles.macroGrid}>
+            <View style={sheetStyles.macroField}>
+              <Text style={[sheetStyles.fieldLabel, { color: Colors.textSecondary }]}>kcal</Text>
+              <TextInput
+                style={[sheetStyles.input, sheetStyles.macroInput]}
+                value={kcal}
+                onChangeText={setKcal}
+                keyboardType="numeric"
+                placeholderTextColor={Colors.textMuted}
+              />
+            </View>
+            <View style={sheetStyles.macroField}>
+              <Text style={[sheetStyles.fieldLabel, { color: Colors.proteines }]}>Prot (g)</Text>
+              <TextInput
+                style={[sheetStyles.input, sheetStyles.macroInput]}
+                value={protein}
+                onChangeText={setProtein}
+                keyboardType="numeric"
+                placeholderTextColor={Colors.textMuted}
+              />
+            </View>
+            <View style={sheetStyles.macroField}>
+              <Text style={[sheetStyles.fieldLabel, { color: Colors.glucides }]}>Gluc (g)</Text>
+              <TextInput
+                style={[sheetStyles.input, sheetStyles.macroInput]}
+                value={carbs}
+                onChangeText={setCarbs}
+                keyboardType="numeric"
+                placeholderTextColor={Colors.textMuted}
+              />
+            </View>
+            <View style={sheetStyles.macroField}>
+              <Text style={[sheetStyles.fieldLabel, { color: Colors.lipides }]}>Lip (g)</Text>
+              <TextInput
+                style={[sheetStyles.input, sheetStyles.macroInput]}
+                value={fat}
+                onChangeText={setFat}
+                keyboardType="numeric"
+                placeholderTextColor={Colors.textMuted}
+              />
+            </View>
+          </View>
+
+          {/* Buttons */}
+          <View style={sheetStyles.buttonRow}>
+            <TouchableOpacity style={sheetStyles.cancelBtn} onPress={onClose}>
+              <Text style={sheetStyles.cancelBtnText}>Annuler</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={sheetStyles.confirmBtn} onPress={handleConfirm}>
+              <Text style={sheetStyles.confirmBtnText}>Confirmer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+const sheetStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  keyboardView: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  sheet: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginBottom: 16,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 6,
+  },
+  input: {
+    backgroundColor: Colors.background,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: Colors.textPrimary,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 14,
+  },
+  macroGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 4,
+  },
+  macroField: {
+    flex: 1,
+  },
+  macroInput: {
+    textAlign: 'center',
+    marginBottom: 0,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  confirmBtn: {
+    flex: 2,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: Colors.darkGreen,
+    alignItems: 'center',
+  },
+  confirmBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: Colors.white,
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AnimatedCheckbox
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface AnimatedCheckboxProps {
+  checked: boolean;
+  onPress: () => void;
+}
+
+function AnimatedCheckbox({ checked, onPress }: AnimatedCheckboxProps) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handlePress = () => {
+    // scale 1 → 1.2 → 1.0
+    Animated.sequence([
+      Animated.timing(scale, { toValue: 1.2, duration: 80, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, friction: 4, useNativeDriver: true }),
+    ]).start();
+    onPress();
+  };
+
+  return (
+    <TouchableOpacity
+      onPress={handlePress}
+      hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+      activeOpacity={0.8}
+    >
+      <Animated.View
+        style={[
+          styles.checkbox,
+          checked && styles.checkboxChecked,
+          { transform: [{ scale }] },
+        ]}
+      >
+        {checked && <Text style={styles.checkboxTick}>✓</Text>}
+      </Animated.View>
+    </TouchableOpacity>
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function DayPlanScreen({ session }: DayPlanScreenProps) {
+export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPlanScreenProps) {
   // ── Profile state ──────────────────────────────────────────────────────────
   const [profile, setProfile]         = useState<Profile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -231,6 +516,12 @@ export default function DayPlanScreen({ session }: DayPlanScreenProps) {
   const [slots, setSlots]               = useState<MealSlot[]>([]);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [loadingPlan, setLoadingPlan]   = useState(false);
+
+  // ── Edit sheet state ───────────────────────────────────────────────────────
+  const [editingSlot, setEditingSlot] = useState<MealSlot | null>(null);
+
+  // ── Summary shown state ────────────────────────────────────────────────────
+  const [summaryDismissed, setSummaryDismissed] = useState(false);
 
   // ── Load profile ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -263,6 +554,63 @@ export default function DayPlanScreen({ session }: DayPlanScreenProps) {
       return null;
     },
     [],
+  );
+
+  // ── Load completed slots for today from Supabase ───────────────────────────
+  const loadCompletedSlotsFromDB = useCallback(
+    async (builtSlots: MealSlot[]) => {
+      if (!session?.user) return;
+      try {
+        const today = todayISO();
+        const { data } = await supabase
+          .from('meal_plans')
+          .select('meal_type')
+          .eq('user_id', session.user.id)
+          .eq('date', today)
+          .eq('is_completed', true);
+
+        if (data && data.length > 0) {
+          const completedTypes = new Set(data.map((r: { meal_type: string }) => r.meal_type));
+          const completedSlotIds = new Set<string>();
+          builtSlots.forEach((s) => {
+            if (completedTypes.has(s.type)) completedSlotIds.add(s.id);
+          });
+          setCompletedIds(completedSlotIds);
+        }
+      } catch (_) {
+        // Silently fail — don't block the UI
+      }
+    },
+    [session],
+  );
+
+  // ── Save / unsave a slot completion to Supabase ────────────────────────────
+  const saveSlotToSupabase = useCallback(
+    async (slot: MealSlot, isCompleted: boolean) => {
+      if (!session?.user) return;
+      try {
+        const today = todayISO();
+        if (isCompleted) {
+          await supabase.from('meal_plans').upsert({
+            user_id:      session.user.id,
+            date:         today,
+            meal_type:    slot.type,
+            recipe_id:    slot.recipeId ?? null,
+            is_completed: true,
+          });
+        } else {
+          await supabase
+            .from('meal_plans')
+            .update({ is_completed: false })
+            .eq('user_id', session.user.id)
+            .eq('date', today)
+            .eq('meal_type', slot.type);
+        }
+      } catch (_) {
+        // Silently fail
+      }
+    },
+    [session],
   );
 
   // ── Build plan ─────────────────────────────────────────────────────────────
@@ -323,18 +671,33 @@ export default function DayPlanScreen({ session }: DayPlanScreenProps) {
       built.sort((a, b) => (a.time < b.time ? -1 : 1));
       setSlots(built);
       setCompletedIds(new Set());
+      setSummaryDismissed(false);
       setLoadingPlan(false);
+
+      // Restore completed slots from DB after plan is built
+      await loadCompletedSlotsFromDB(built);
     },
-    [profile, fetchFrigoRecipe],
+    [profile, fetchFrigoRecipe, loadCompletedSlotsFromDB],
   );
 
   // ── Toggle a slot as completed ─────────────────────────────────────────────
-  const toggleSlot = useCallback((id: string) => {
+  const toggleSlot = useCallback((slot: MealSlot) => {
     setCompletedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      const willBeCompleted = !next.has(slot.id);
+      if (willBeCompleted) {
+        next.add(slot.id);
+      } else {
+        next.delete(slot.id);
+      }
+      saveSlotToSupabase(slot, willBeCompleted);
       return next;
     });
+  }, [saveSlotToSupabase]);
+
+  // ── Update a slot's macros/name (from edit sheet) ──────────────────────────
+  const updateSlot = useCallback((slotId: string, updates: Partial<MealSlot>) => {
+    setSlots((prev) => prev.map((s) => (s.id === slotId ? { ...s, ...updates } : s)));
   }, []);
 
   // ── Totals ─────────────────────────────────────────────────────────────────
@@ -345,10 +708,26 @@ export default function DayPlanScreen({ session }: DayPlanScreenProps) {
   const totalFat        = completedSlots.reduce((acc, s) => acc + s.fat,      0);
 
   const dailyCal        = profile?.daily_calories ?? 2000;
-  const calPct          = Math.min(totalConsumed / dailyCal, 1);
+  const calPct          = totalConsumed / Math.max(dailyCal, 1);
+  const calPctClamped   = Math.min(calPct, 1);
 
   const regime          = (profile?.regime ?? 'equilibre') as Regime;
   const dayMacros       = calcMacros(dailyCal, regime);
+
+  // ── Ring color based on consumption ───────────────────────────────────────
+  const ringColor = calPct > 1 ? Colors.orange : calPct >= 0.8 ? Colors.lime : Colors.success;
+
+  // ── Show summary condition ─────────────────────────────────────────────────
+  const allCompleted = slots.length > 0 && completedIds.size === slots.length;
+  const isLateEvening = currentHour() >= 22;
+  const showSummary = !summaryDismissed && !loadingPlan && slots.length > 0 && (allCompleted || isLateEvening);
+
+  // ── Coach message for summary ──────────────────────────────────────────────
+  const coachSummaryMsg = (() => {
+    if (calPct >= 0.9 && calPct <= 1.1) return getCoachMessage(coachMode, 'well_done');
+    if (calPct < 0.9) return getCoachMessage(coachMode, 'miss_meal');
+    return getCoachMessage(coachMode, 'well_done');
+  })();
 
   // ── Render guards ──────────────────────────────────────────────────────────
   if (loadingProfile) {
@@ -436,8 +815,8 @@ export default function DayPlanScreen({ session }: DayPlanScreenProps) {
             }}
           >
             <Text style={styles.dayCardEmoji}>🛋️</Text>
-            <Text style={styles.dayCardTitle}>Jour de repos</Text>
-            <Text style={styles.dayCardSub}>Plan récupération & maintenance</Text>
+            <Text style={[styles.dayCardTitle, { color: Colors.textPrimary }]}>Jour de repos</Text>
+            <Text style={[styles.dayCardSub, { color: Colors.textSecondary }]}>Plan récupération & maintenance</Text>
           </TouchableOpacity>
 
           <View style={{ height: 40 }} />
@@ -464,7 +843,7 @@ export default function DayPlanScreen({ session }: DayPlanScreenProps) {
             </View>
 
             {/* Calorie ring */}
-            <View style={styles.calorieRing}>
+            <View style={[styles.calorieRing, { borderColor: ringColor }]}>
               <View style={styles.calorieRingInner}>
                 <Text style={styles.calorieRingVal}>{totalConsumed}</Text>
                 <Text style={styles.calorieRingGoal}>/ {dailyCal} kcal</Text>
@@ -492,15 +871,23 @@ export default function DayPlanScreen({ session }: DayPlanScreenProps) {
                     ]}
                   />
                 </View>
-                <Text style={styles.macroGoalText}>/ {goal}g</Text>
+                <Text style={styles.macroGoalText}>{consumed}g / {goal}g</Text>
               </View>
             ))}
           </View>
 
           {/* Calorie bar */}
           <View style={styles.calBarTrack}>
-            <View style={[styles.calBarFill, { width: `${Math.round(calPct * 100)}%` as any }]} />
+            <View
+              style={[
+                styles.calBarFill,
+                { width: `${Math.round(calPctClamped * 100)}%` as any, backgroundColor: ringColor },
+              ]}
+            />
           </View>
+          <Text style={styles.calBarPct}>
+            {Math.round(calPct * 100)}% de l'objectif · {completedSlots.length}/{slots.length} repas cochés
+          </Text>
         </View>
 
         {/* ── Loading plan ────────────────────────────────────────────────── */}
@@ -550,13 +937,10 @@ export default function DayPlanScreen({ session }: DayPlanScreenProps) {
                             {slot.type}
                           </Text>
                         </View>
-                        <TouchableOpacity
-                          style={[styles.checkbox, isCompleted && styles.checkboxChecked]}
-                          onPress={() => toggleSlot(slot.id)}
-                          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                        >
-                          {isCompleted && <Text style={styles.checkboxTick}>✓</Text>}
-                        </TouchableOpacity>
+                        <AnimatedCheckbox
+                          checked={isCompleted}
+                          onPress={() => toggleSlot(slot)}
+                        />
                       </View>
 
                       {/* Recipe / suggestion */}
@@ -582,17 +966,100 @@ export default function DayPlanScreen({ session }: DayPlanScreenProps) {
                         </View>
                       </View>
 
-                      {/* Current badge */}
-                      {isCurrent && !isCompleted && (
-                        <View style={styles.currentBadge}>
-                          <Text style={styles.currentBadgeText}>⏰ Maintenant</Text>
-                        </View>
-                      )}
+                      {/* Bottom row: Current badge + Modifier button */}
+                      <View style={styles.slotFooterRow}>
+                        {isCurrent && !isCompleted ? (
+                          <View style={styles.currentBadge}>
+                            <Text style={styles.currentBadgeText}>⏰ Maintenant</Text>
+                          </View>
+                        ) : (
+                          <View />
+                        )}
+                        <TouchableOpacity
+                          style={styles.editBtn}
+                          onPress={() => setEditingSlot(slot)}
+                          hitSlop={{ top: 6, right: 6, bottom: 6, left: 6 }}
+                        >
+                          <Text style={styles.editBtnText}>✏️ Modifier</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
                 </View>
               );
             })}
+          </View>
+        )}
+
+        {/* ── Day summary card ─────────────────────────────────────────────── */}
+        {showSummary && (
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryHeader}>
+              <Text style={styles.summaryTitle}>Bilan du jour</Text>
+              <TouchableOpacity
+                onPress={() => setSummaryDismissed(true)}
+                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+              >
+                <Text style={styles.summaryDismiss}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Score kcal */}
+            <View style={styles.summaryScoreRow}>
+              {calPct >= 0.9 && calPct <= 1.1 ? (
+                <View style={[styles.scoreBadge, { backgroundColor: Colors.success + '20' }]}>
+                  <Text style={[styles.scoreBadgeText, { color: Colors.success }]}>
+                    ✓ Objectif atteint
+                  </Text>
+                </View>
+              ) : calPct < 0.9 ? (
+                <View style={[styles.scoreBadge, { backgroundColor: Colors.warning + '20' }]}>
+                  <Text style={[styles.scoreBadgeText, { color: Colors.warning }]}>
+                    {dailyCal - totalConsumed} kcal manquants
+                  </Text>
+                </View>
+              ) : (
+                <View style={[styles.scoreBadge, { backgroundColor: Colors.orange + '20' }]}>
+                  <Text style={[styles.scoreBadgeText, { color: Colors.orange }]}>
+                    +{totalConsumed - dailyCal} kcal en excès
+                  </Text>
+                </View>
+              )}
+              <Text style={styles.summaryKcalDetail}>
+                {totalConsumed} / {dailyCal} kcal
+              </Text>
+            </View>
+
+            {/* Macros comparison */}
+            <View style={styles.summaryMacroGrid}>
+              {[
+                { label: 'Protéines', consumed: totalProtein, goal: dayMacros.protein, color: Colors.proteines },
+                { label: 'Glucides',  consumed: totalCarbs,   goal: dayMacros.carbs,   color: Colors.glucides  },
+                { label: 'Lipides',   consumed: totalFat,     goal: dayMacros.fat,     color: Colors.lipides   },
+              ].map(({ label, consumed, goal, color }) => (
+                <View key={label} style={styles.summaryMacroItem}>
+                  <Text style={[styles.summaryMacroLabel, { color }]}>{label}</Text>
+                  <Text style={styles.summaryMacroVal}>{consumed}g</Text>
+                  <Text style={styles.summaryMacroGoal}>/ {goal}g</Text>
+                  <View style={styles.summaryMacroTrack}>
+                    <View
+                      style={[
+                        styles.summaryMacroFill,
+                        {
+                          width: `${Math.min((consumed / Math.max(goal, 1)) * 100, 100)}%` as any,
+                          backgroundColor: color,
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            {/* Coach message */}
+            <View style={styles.coachMsgBox}>
+              <Text style={styles.coachMsgText}>💬 {coachSummaryMsg}</Text>
+            </View>
           </View>
         )}
 
@@ -606,6 +1073,7 @@ export default function DayPlanScreen({ session }: DayPlanScreenProps) {
                 setSlots([]);
                 setCompletedIds(new Set());
                 setShowTimePicker(false);
+                setSummaryDismissed(false);
               }}
             >
               <Text style={styles.modifyButtonText}>✏️ Modifier le plan</Text>
@@ -615,6 +1083,15 @@ export default function DayPlanScreen({ session }: DayPlanScreenProps) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* ── Edit meal bottom sheet ───────────────────────────────────────── */}
+      {editingSlot && (
+        <EditMealSheet
+          slot={editingSlot}
+          onConfirm={(updates) => updateSlot(editingSlot.id, updates)}
+          onClose={() => setEditingSlot(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -754,9 +1231,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.75)',
   },
 
-  // When rest card (white bg), override text colors
-  // (We use inline styles via children rather than overriding here)
-
   // Time picker
   timePickerContainer: {
     backgroundColor: Colors.white,
@@ -818,7 +1292,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.darkGreen,
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 18,
+    paddingBottom: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
@@ -871,7 +1345,7 @@ const styles = StyleSheet.create({
   macroRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   macroItem: {
     flex: 1,
@@ -918,6 +1392,12 @@ const styles = StyleSheet.create({
     height: '100%' as any,
     backgroundColor: Colors.lime,
     borderRadius: 2,
+  },
+  calBarPct: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.45)',
+    marginTop: 5,
+    textAlign: 'right',
   },
 
   // ── Timeline ───────────────────────────────────────────────────────────────
@@ -983,7 +1463,7 @@ const styles = StyleSheet.create({
   },
   slotCardCompleted: {
     backgroundColor: '#F0FBF4',
-    opacity: 0.85,
+    opacity: 0.9,
   },
   slotCardCurrent: {
     borderWidth: 2,
@@ -1076,6 +1556,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
     alignItems: 'center',
+    marginBottom: 8,
   },
   calPill: {
     paddingHorizontal: 8,
@@ -1093,9 +1574,15 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 
+  // Slot footer row (badge + edit button)
+  slotFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
   // Current badge
   currentBadge: {
-    marginTop: 10,
     alignSelf: 'flex-start',
     backgroundColor: Colors.lime + '30',
     paddingHorizontal: 10,
@@ -1106,6 +1593,124 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: Colors.darkGreen,
+  },
+
+  // Edit button
+  editBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  editBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+
+  // ── Day summary card ───────────────────────────────────────────────────────
+  summaryCard: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    backgroundColor: Colors.white,
+    borderRadius: 18,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  summaryTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  summaryDismiss: {
+    fontSize: 16,
+    color: Colors.textMuted,
+    fontWeight: '700',
+  },
+  summaryScoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  scoreBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  scoreBadgeText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  summaryKcalDetail: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+  },
+  summaryMacroGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
+  summaryMacroItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryMacroLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  summaryMacroVal: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  summaryMacroGoal: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    marginBottom: 4,
+  },
+  summaryMacroTrack: {
+    width: '100%',
+    height: 4,
+    backgroundColor: Colors.border,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  summaryMacroFill: {
+    height: '100%' as any,
+    borderRadius: 2,
+  },
+  coachMsgBox: {
+    backgroundColor: Colors.darkGreen + '0D',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.darkGreen + '20',
+  },
+  coachMsgText: {
+    fontSize: 13,
+    color: Colors.darkGreen,
+    fontWeight: '600',
+    lineHeight: 18,
   },
 
   // ── Footer ─────────────────────────────────────────────────────────────────
