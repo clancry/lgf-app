@@ -59,10 +59,7 @@ export default function DailyQuizScreen({ session, onComplete }: DailyQuizScreen
   async function fetchQuestions() {
     try {
       const { data, error } = await supabase
-        .from('quiz_questions')
-        .select('*')
-        .eq('is_active', true)
-        .limit(3);
+        .rpc('get_random_quiz_questions', { n: 3 });
 
       if (error || !data || data.length === 0) {
         onComplete(0);

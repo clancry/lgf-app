@@ -46,53 +46,9 @@ interface QuizQuestion {
   fact: string;
 }
 
-const QUIZ_QUESTIONS: QuizQuestion[] = [
-  {
-    id: 'q1',
-    category: 'Nutrition',
-    categoryEmoji: '🥗',
-    question: 'Quelle protéine a le score PDCAAS le plus élevé ?',
-    options: ['Poulet', 'Blanc d\'œuf', 'Whey', 'Soja'],
-    correctIndex: 2,
-    fact: 'La whey atteint un score PDCAAS de 1.0 — le maximum possible.',
-  },
-  {
-    id: 'q2',
-    category: 'Sport',
-    categoryEmoji: '💪',
-    question: 'En combien de temps la fenêtre anabolique se referme-t-elle ?',
-    options: ['30 min', '1h', '2h', '4h'],
-    correctIndex: 2,
-    fact: 'La fenêtre anabolique dure environ 2h après l\'effort.',
-  },
-  {
-    id: 'q3',
-    category: 'Célébrité',
-    categoryEmoji: '⭐',
-    question: 'Cristiano Ronaldo consomme combien de repas par jour ?',
-    options: ['3', '4', '5-6', '8'],
-    correctIndex: 2,
-    fact: 'CR7 mange 5 à 6 petits repas par jour.',
-  },
-  {
-    id: 'q4',
-    category: 'Bien-être',
-    categoryEmoji: '😴',
-    question: 'Le sommeil impacte quelle hormone de récupération ?',
-    options: ['Cortisol', 'Insuline', 'GH', 'Adrénaline'],
-    correctIndex: 2,
-    fact: 'L\'hormone de croissance est sécrétée à 70% pendant le sommeil profond.',
-  },
-  {
-    id: 'q5',
-    category: 'Compétition',
-    categoryEmoji: '🏆',
-    question: 'Combien de fois Phil Heath a remporté M. Olympia ?',
-    options: ['5', '6', '7', '8'],
-    correctIndex: 2,
-    fact: 'Phil Heath a remporté 7 titres consécutifs (2011-2017).',
-  },
-];
+// Questions du quiz — chargées depuis Supabase (get_random_quiz_questions)
+// Le state quizQuestions est défini dans le composant ArenaScreen
+
 
 function getQuizPoints(score: number): number {
   if (score === 5) return 50;
@@ -337,6 +293,8 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
   const [activeTab, setActiveTab] = useState<ArenaTab>('quiz');
 
   // ── Quiz state
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [quizLoading, setQuizLoading] = useState(true);
   const [quizIndex, setQuizIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [quizAnswers, setQuizAnswers] = useState<(number | null)[]>(Array(5).fill(null));
@@ -352,7 +310,7 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
   }
 
   function nextQuestion() {
-    if (quizIndex + 1 >= QUIZ_QUESTIONS.length) {
+    if (quizIndex + 1 >= quizQuestions.length) {
       setQuizFinished(true);
     } else {
       setQuizIndex(i => i + 1);
@@ -361,10 +319,36 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
   }
 
   // Compute score when finished
-  const quizScore = QUIZ_QUESTIONS.reduce(
+  const quizScore = quizQuestions.reduce(
     (acc, q, i) => acc + (quizAnswers[i] === q.correctIndex ? 1 : 0),
     0
   );
+
+  // Charger les questions au mount — aléatoires depuis Supabase
+  useEffect(() => {
+    async function fetchQuizQuestions() {
+      try {
+        const { data, error } = await supabase.rpc('get_random_quiz_questions', { n: 5 });
+        if (!error && data && data.length > 0) {
+          setQuizQuestions(data.map((q: any, i: number) => ({
+            id: String(q.id),
+            category: q.category,
+            categoryEmoji: q.emoji || '❓',
+            question: q.question,
+            options: Array.isArray(q.options) ? q.options : JSON.parse(q.options),
+            correctIndex: q.answer,
+            fact: q.fact || '',
+          })));
+          setQuizAnswers(Array(data.length).fill(null));
+        }
+      } catch (e) {
+        console.error('Quiz fetch error:', e);
+      } finally {
+        setQuizLoading(false);
+      }
+    }
+    fetchQuizQuestions();
+  }, []);
 
   useEffect(() => {
     if (quizFinished && !quizPointsAwarded) {
@@ -473,7 +457,7 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
     }
   }
 
-  const currentQ = QUIZ_QUESTIONS[quizIndex];
+  const currentQ = quizQuestions[quizIndex] || null;
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -534,14 +518,25 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
       {/* ── Quiz Tab ── */}
       {activeTab === 'quiz' && (
         <ScrollView style={styles.flex} contentContainerStyle={styles.quizContent}>
-          {quizFinished ? (
+          {quizLoading ? (
+            <View style={{ alignItems: 'center', paddingTop: 60 }}>
+              <ActivityIndicator size="large" color={Colors.darkGreen} />
+              <Text style={{ marginTop: 12, color: Colors.textSecondary }}>Chargement du quiz...</Text>
+            </View>
+          ) : quizQuestions.length === 0 ? (
+            <View style={{ alignItems: 'center', paddingTop: 60 }}>
+              <Text style={{ fontSize: 40 }}>{'😕'}</Text>
+              <Text style={{ marginTop: 12, color: Colors.textSecondary, textAlign: 'center' }}>Impossible de charger le quiz.{'
+'}Vérifie ta connexion.</Text>
+            </View>
+          ) : quizFinished ? (
             <View style={styles.resultContainer}>
               <Text style={styles.resultEmoji}>
                 {quizScore === 5 ? '🏆' : quizScore >= 3 ? '💪' : '📚'}
               </Text>
               <Text style={styles.resultTitle}>Quiz terminé !</Text>
               <Text style={styles.resultScore}>
-                {quizScore} / {QUIZ_QUESTIONS.length}
+                {quizScore} / {quizQuestions.length}
               </Text>
               <Text style={styles.resultSub}>bonnes réponses</Text>
 
@@ -577,7 +572,7 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
             <View>
               {/* Progress dots */}
               <View style={styles.progressDots}>
-                {QUIZ_QUESTIONS.map((_, i) => (
+                {quizQuestions.map((_, i) => (
                   <View
                     key={i}
                     style={[
@@ -670,13 +665,14 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
               {selectedAnswer !== null && (
                 <TouchableOpacity style={styles.nextButton} onPress={nextQuestion}>
                   <Text style={styles.nextButtonText}>
-                    {quizIndex + 1 >= QUIZ_QUESTIONS.length
+                    {quizIndex + 1 >= quizQuestions.length
                       ? 'Voir mes résultats →'
                       : 'Question suivante →'}
                   </Text>
                 </TouchableOpacity>
               )}
             </View>
+          )}
           )}
         </ScrollView>
       )}
