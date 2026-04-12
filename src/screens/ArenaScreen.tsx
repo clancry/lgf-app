@@ -526,8 +526,7 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
           ) : quizQuestions.length === 0 ? (
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
               <Text style={{ fontSize: 40 }}>{'😕'}</Text>
-              <Text style={{ marginTop: 12, color: Colors.textSecondary, textAlign: 'center' }}>Impossible de charger le quiz.{'
-'}Vérifie ta connexion.</Text>
+              <Text style={{ marginTop: 12, color: Colors.textSecondary, textAlign: 'center' }}>Impossible de charger le quiz.{' '}Vérifie ta connexion.</Text>
             </View>
           ) : quizFinished ? (
             <View style={styles.resultContainer}>
