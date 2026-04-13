@@ -64,8 +64,15 @@ interface TipArticle {
   category: string;
   categoryEmoji: string;
   title: string;
-  summary: string;
-  content: string;
+  summary: string;        // affiché avant l'ouverture
+  content: string;        // révélé après tap
+  vraiFaux?: {            // quiz interactif Vrai/Faux
+    question: string;
+    answer: boolean;      // true = Vrai, false = Faux
+    explanation: string;
+  };
+  videoId?: string;       // ID YouTube (ouvre dans navigateur)
+  videoLabel?: string;    // libellé du bouton vidéo
 }
 
 const TIPS_ARTICLES: TipArticle[] = [
@@ -75,73 +82,113 @@ const TIPS_ARTICLES: TipArticle[] = [
     category: 'Postures',
     categoryEmoji: '🏋️',
     title: 'Le squat parfait',
-    summary: 'Technique complète pour un squat sécurisé et efficace.',
-    content:
-      'Pieds écartés largeur d\'épaules, pointes légèrement vers l\'extérieur. Descends en poussant les fesses en arrière, genoux alignés avec les orteils. Le dos reste droit — imagine que tu t\'assois sur une chaise. Descends au moins jusqu\'à ce que tes cuisses soient parallèles au sol. Remonte en poussant par les talons.',
+    summary: 'Tape pour découvrir la technique complète + vidéo.',
+    content: 'Pieds écartés largeur d\'épaules, pointes légèrement vers l\'extérieur. Descends en poussant les fesses en arrière, genoux alignés avec les orteils. Le dos reste droit — imagine que tu t\'assois sur une chaise. Descends jusqu\'à ce que tes cuisses soient parallèles au sol. Remonte en poussant par les talons.',
+    vraiFaux: {
+      question: 'Les genoux peuvent dépasser les orteils au squat sans danger.',
+      answer: true,
+      explanation: 'VRAI — C\'est un mythe. Les genoux peuvent légèrement dépasser les orteils sans risque si la technique globale est correcte. Interdire ce mouvement limite la profondeur et crée plus de tension dans le bas du dos.',
+    },
+    videoId: 'nhoikoUEI8U',
+    videoLabel: '▶ Voir la technique en vidéo',
   },
   {
     id: 't2',
     category: 'Postures',
     categoryEmoji: '🏋️',
     title: 'Le soulevé de terre (deadlift)',
-    summary: 'Maîtrise le roi des exercices sans te blesser.',
-    content:
-      'Pieds sous la barre, écartés largeur de hanches. Prise mixte ou double pronation. Tire en gardant la barre collée aux tibias. Le dos reste PLAT — ne jamais arrondir le bas du dos. Verrouille en haut en serrant les fessiers.',
+    summary: 'Tape pour maîtriser le roi des exercices sans te blesser.',
+    content: 'Pieds sous la barre, écartés largeur de hanches. Prise mixte ou double pronation. Tire en gardant la barre collée aux tibias. Le dos reste PLAT — ne jamais arrondir le bas du dos. Verrouille en haut en serrant les fessiers.',
+    vraiFaux: {
+      question: 'Arrondir légèrement le dos au deadlift est acceptable pour soulever plus lourd.',
+      answer: false,
+      explanation: 'FAUX — Arrondir le dos au deadlift est l\'une des erreurs les plus dangereuses. Même une légère flexion sous charge maximale peut comprimer les disques lombaires. Priorité absolue : dos plat, même si tu soulèves moins lourd.',
+    },
+    videoId: 'op9kVnSso6Q',
+    videoLabel: '▶ Voir la technique en vidéo',
   },
   {
     id: 't3',
     category: 'Postures',
     categoryEmoji: '🏋️',
     title: 'Le développé couché',
-    summary: 'La bonne technique pour protéger tes épaules.',
-    content:
-      'Omoplates serrées, légère cambrure du bas du dos. Pieds bien ancrés au sol. Descends la barre au niveau des mamelons, coudes à 45° (pas 90°). Pousse en ligne droite vers le plafond.',
+    summary: 'Tape pour protéger tes épaules et progresser plus vite.',
+    content: 'Omoplates serrées, légère cambrure du bas du dos. Pieds bien ancrés au sol. Descends la barre au niveau des mamelons, coudes à 45° (pas 90°). Pousse en ligne droite vers le plafond.',
+    vraiFaux: {
+      question: 'Les coudes doivent être à 90° du corps pour un développé couché efficace.',
+      answer: false,
+      explanation: 'FAUX — Les coudes à 90° sont la position la plus risquée pour les épaules. La bonne position est 45-75° par rapport au corps. Ça réduit le stress sur le deltoïde antérieur et l\'articulation gléno-humérale.',
+    },
+    videoId: 'rT7DgCr-3pg',
+    videoLabel: '▶ Voir la technique en vidéo',
   },
   {
     id: 't4',
     category: 'Postures',
     categoryEmoji: '🏋️',
     title: 'La bonne posture en course',
-    summary: 'Cours plus vite et sans douleurs avec cette technique.',
-    content:
-      'Regard droit devant, épaules relâchées, bras à 90°. Le pied atterrit sous le centre de gravité, pas devant. Fréquence idéale : 170-180 pas/min.',
+    summary: 'Tape pour courir plus vite et sans douleurs.',
+    content: 'Regard droit devant, épaules relâchées, bras à 90°. Le pied atterrit sous le centre de gravité, pas devant. Fréquence idéale : 170-180 pas/min. Gainage actif pour économiser de l\'énergie.',
+    vraiFaux: {
+      question: 'Attaquer le sol avec le talon est la meilleure technique de course.',
+      answer: false,
+      explanation: 'FAUX — L\'attaque talon crée un effet de frein et augmente les impacts sur les articulations. L\'attaque médio-pied (sous le centre de gravité) est plus économique et génère moins de blessures à long terme.',
+    },
+    videoId: 'wRkeBVMQSgg',
+    videoLabel: '▶ Voir la technique en vidéo',
   },
   // Mythes
   {
     id: 't5',
     category: 'Mythes',
     categoryEmoji: '🍽️',
-    title: 'Les œufs donnent du cholestérol → FAUX',
-    summary: 'La vérité sur les œufs et le cholestérol.',
-    content:
-      'Le cholestérol alimentaire a très peu d\'impact sur le cholestérol sanguin. Les œufs sont une source exceptionnelle de protéines complètes, de choline et de vitamines. Tu peux manger 3-4 œufs par jour sans problème.',
+    title: 'Les œufs font monter le cholestérol',
+    summary: 'Vrai ou Faux ? Tape pour découvrir la réponse.',
+    content: 'Le cholestérol alimentaire a très peu d\'impact sur le cholestérol sanguin. Les œufs sont une source exceptionnelle de protéines complètes, de choline et de vitamines. Tu peux manger 3-4 œufs par jour sans problème si tu es en bonne santé.',
+    vraiFaux: {
+      question: 'Manger des œufs chaque jour augmente significativement ton cholestérol sanguin.',
+      answer: false,
+      explanation: 'FAUX — Le foie régule la production de cholestérol en fonction de l\'apport alimentaire. Chez la majorité des gens, les œufs n\'augmentent pas le LDL de façon problématique. C\'est le sucre et les graisses trans qui sont les vraies causes.',
+    },
   },
   {
     id: 't6',
     category: 'Mythes',
     categoryEmoji: '🍽️',
-    title: 'Manger le soir fait grossir → FAUX',
-    summary: 'L\'heure des repas ne détermine pas le stockage des graisses.',
-    content:
-      'Ce qui compte c\'est le total calorique sur 24h, pas l\'heure. Manger tard ne stocke pas plus de gras. Par contre, évite les glucides rapides avant de dormir — privilégie protéines + légumes.',
+    title: 'Manger le soir fait grossir',
+    summary: 'Vrai ou Faux ? Tape pour découvrir la réponse.',
+    content: 'Ce qui compte c\'est le total calorique sur 24h, pas l\'heure. Manger tard ne stocke pas plus de gras. Par contre, évite les glucides rapides avant de dormir — privilégie protéines + légumes.',
+    vraiFaux: {
+      question: 'Un repas pris après 20h est stocké directement en graisse.',
+      answer: false,
+      explanation: 'FAUX — Le corps ne stocke pas les graisses différemment selon l\'heure. Ce qui compte c\'est le bilan calorique total sur 24h. Dîner tard peut cependant perturber le sommeil et la sécrétion de mélatonine.',
+    },
   },
   {
     id: 't7',
     category: 'Mythes',
     categoryEmoji: '🍽️',
-    title: 'Les protéines abîment les reins → FAUX',
-    summary: 'Un mythe qui freine inutilement les sportifs.',
-    content:
-      'Aucune étude n\'a montré que 2g/kg de protéines abîme les reins chez les personnes en bonne santé. C\'est un mythe qui décourage les sportifs de consommer assez de protéines.',
+    title: 'Les protéines abîment les reins',
+    summary: 'Vrai ou Faux ? Tape pour découvrir la réponse.',
+    content: 'Aucune étude n\'a montré que 2g/kg de protéines abîme les reins chez les personnes en bonne santé. C\'est un mythe qui décourage les sportifs de consommer assez de protéines.',
+    vraiFaux: {
+      question: 'Consommer 2g de protéines par kg de poids endommage les reins des sportifs sains.',
+      answer: false,
+      explanation: 'FAUX — Ce mythe vient d\'études sur des patients déjà atteints d\'insuffisance rénale. Chez les personnes saines, jusqu\'à 3g/kg/j ne montre aucun impact négatif sur la fonction rénale. Hydrate-toi bien, c\'est tout.',
+    },
   },
   {
     id: 't8',
     category: 'Mythes',
     categoryEmoji: '🍽️',
-    title: 'Il faut manger toutes les 3h → FAUX',
-    summary: 'La fréquence des repas n\'accélère pas le métabolisme.',
-    content:
-      'La fréquence des repas n\'affecte pas le métabolisme. Ce qui compte c\'est le total calorique et la répartition des macros. 3 repas ou 6 repas — même résultat si les totaux sont identiques.',
+    title: 'Il faut manger toutes les 3 heures',
+    summary: 'Vrai ou Faux ? Tape pour découvrir la réponse.',
+    content: 'La fréquence des repas n\'affecte pas le métabolisme. Ce qui compte c\'est le total calorique et la répartition des macros. 3 repas ou 6 repas — même résultat si les totaux sont identiques.',
+    vraiFaux: {
+      question: 'Manger toutes les 3h booste le métabolisme et brûle plus de calories.',
+      answer: false,
+      explanation: 'FAUX — L\'effet thermique des aliments (environ 10% des calories) est identique quelle que soit la fréquence des repas. Ce mythe vient des années 80. Les études actuelles montrent qu\'il n\'y a aucune différence sur la composition corporelle.',
+    },
   },
   // Récupération
   {
@@ -149,27 +196,41 @@ const TIPS_ARTICLES: TipArticle[] = [
     category: 'Récupération',
     categoryEmoji: '💪',
     title: 'Sommeil = muscle',
-    summary: '70% de ta croissance musculaire se passe la nuit.',
-    content:
-      '70% de l\'hormone de croissance est sécrétée pendant le sommeil profond. Dormir moins de 6h réduit la synthèse protéique de 18%. Vise 7-9h, dans une chambre fraîche et sombre.',
+    summary: 'Tape pour comprendre pourquoi le sommeil est ton meilleur allié.',
+    content: '70% de l\'hormone de croissance est sécrétée pendant le sommeil profond. Dormir moins de 6h réduit la synthèse protéique de 18%. Vise 7-9h, dans une chambre fraîche et sombre.',
+    vraiFaux: {
+      question: 'Dormir moins de 6h réduit la synthèse musculaire de plus de 15%.',
+      answer: true,
+      explanation: 'VRAI — Une étude de 2011 (Nedeltcheva et al.) a montré que restreindre le sommeil à 5.5h réduisait la perte de masse grasse de 55% et la synthèse protéique de 18%. Le sommeil est aussi important que l\'entraînement.',
+    },
   },
   {
     id: 't10',
     category: 'Récupération',
     categoryEmoji: '💪',
     title: 'L\'importance de l\'hydratation',
-    summary: '1% de déshydratation = 10% de performances en moins.',
-    content:
-      '1% de déshydratation = 10% de perte de performance. Bois 30-40ml par kg de poids corporel par jour. Pendant l\'effort : 150-250ml toutes les 15 minutes.',
+    summary: 'Tape pour découvrir à quel point l\'eau impacte tes performances.',
+    content: '1% de déshydratation = 10% de perte de performance. Bois 30-40ml par kg de poids corporel par jour. Pendant l\'effort : 150-250ml toutes les 15 minutes. L\'eau minérale est préférable à l\'eau du robinet pour les sportifs.',
+    vraiFaux: {
+      question: '1% de déshydratation peut réduire tes performances sportives de 10%.',
+      answer: true,
+      explanation: 'VRAI — Même une légère déshydratation impacte la force, l\'endurance et la concentration. À 2% de déshydratation, la performance chute de 20%. L\'urine doit être jaune clair — si elle est foncée, bois immédiatement.',
+    },
   },
   {
     id: 't11',
     category: 'Récupération',
     categoryEmoji: '💪',
     title: 'Stretching et mobilité',
-    summary: 'Étirer correctement réduit les courbatures de 30%.',
-    content:
-      '10 minutes de stretching post-workout réduisent les courbatures de 30%. Concentre-toi sur les groupes musculaires travaillés. Maintiens chaque étirement 20-30 secondes.',
+    summary: 'Tape pour savoir comment étirer efficacement.',
+    content: '10 minutes de stretching post-workout réduisent les courbatures de 30%. Concentre-toi sur les groupes musculaires travaillés. Maintiens chaque étirement 20-30 secondes. Le stretching statique doit se faire APRÈS l\'effort, pas avant.',
+    vraiFaux: {
+      question: 'Faire du stretching statique avant l\'entraînement améliore les performances.',
+      answer: false,
+      explanation: 'FAUX — Le stretching statique avant l\'effort réduit temporairement la force et la puissance musculaire. Avant l\'entraînement : échauffement dynamique (rotations, leg swings). Après : stretching statique pour récupérer.',
+    },
+    videoId: 'g6lTK4XBhKk',
+    videoLabel: '▶ Routine stretching complète',
   },
   // Mindset
   {
@@ -177,27 +238,39 @@ const TIPS_ARTICLES: TipArticle[] = [
     category: 'Mindset',
     categoryEmoji: '🧠',
     title: 'La règle des 2 jours',
-    summary: 'Ne laisse jamais deux jours d\'inactivité s\'enchaîner.',
-    content:
-      'Ne rate jamais 2 jours d\'affilée. Rater un jour c\'est humain, rater deux jours c\'est une habitude qui se perd. Même 20 minutes comptent.',
+    summary: 'Vrai ou Faux ? Tape pour découvrir cette règle qui change tout.',
+    content: 'Ne rate jamais 2 jours d\'affilée. Rater un jour c\'est humain, rater deux jours c\'est une habitude qui se perd. Même 20 minutes comptent. Cette règle est utilisée par les athlètes professionnels pour maintenir la régularité.',
+    vraiFaux: {
+      question: 'Rater 2 jours d\'entraînement consécutifs brise le circuit de l\'habitude dans le cerveau.',
+      answer: true,
+      explanation: 'VRAI — Les neurosciences montrent que 2 jours sans comportement ciblent le circuit de récompense et réduisent la dopamine associée à l\'activité. Après 3 jours, l\'habitude doit être reconstruite. La règle des 2 jours protège le circuit.',
+    },
   },
   {
     id: 't13',
     category: 'Mindset',
     categoryEmoji: '🧠',
     title: 'Progresser, pas performer',
-    summary: 'Ton seul concurrent, c\'est toi d\'il y a 3 mois.',
-    content:
-      'Compare-toi à toi-même d\'il y a 3 mois, pas au gars à côté. La progression est personnelle. 1% de mieux chaque jour = 37x mieux en un an.',
+    summary: 'Tape pour changer ta façon de mesurer le succès.',
+    content: 'Compare-toi à toi-même d\'il y a 3 mois, pas au gars à côté. La progression est personnelle. 1% de mieux chaque jour = 37x mieux en un an (effet composé). Garde un journal de tes performances.',
+    vraiFaux: {
+      question: 'Une amélioration de 1% par jour pendant 365 jours te rend 37 fois meilleur.',
+      answer: true,
+      explanation: 'VRAI — C\'est l\'effet composé appliqué à la performance : 1.01^365 = 37.78. À l\'inverse, 0.99^365 = 0.03 — régresser de 1% par jour te ramène à presque rien en un an. La régularité bat l\'intensité sur le long terme.',
+    },
   },
   {
     id: 't14',
     category: 'Mindset',
     categoryEmoji: '🧠',
     title: 'L\'effet communauté',
-    summary: 'S\'entraîner en groupe augmente la persévérance de 95%.',
-    content:
-      'Les personnes qui s\'entraînent en groupe ont 95% plus de chances de maintenir leur programme. C\'est pour ça que l\'Arena existe — ensemble on va plus loin.',
+    summary: 'Tape pour comprendre pourquoi l\'Arena booste tes résultats.',
+    content: 'Les personnes qui s\'entraînent en groupe ont 95% plus de chances de maintenir leur programme. C\'est pour ça que l\'Arena existe — ensemble on va plus loin. La responsabilité sociale active le cortex préfrontal et réduit la procrastination.',
+    vraiFaux: {
+      question: 'S\'entraîner en groupe augmente la persévérance de plus de 90% par rapport à l\'entraînement solo.',
+      answer: true,
+      explanation: 'VRAI — Une étude de l\'Université d\'Aberdeen (2016) a montré que trouver un partenaire d\'entraînement augmentait les séances de 78% en moyenne. Ajouter la compétition et la communauté monte ce chiffre à 95%.',
+    },
   },
 ];
 
@@ -434,6 +507,11 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
   const [expandedTip, setExpandedTip] = useState<string | null>(null);
   const [readTips, setReadTips] = useState<Set<string>>(new Set());
   const [tipsCategory, setTipsCategory] = useState<string>('Postures');
+  const [vraiFauxAnswers, setVraiFauxAnswers] = useState<Record<string, boolean | null>>({});  // null = pas encore répondu
+
+  function answerVraiFaux(tipId: string, answer: boolean) {
+    setVraiFauxAnswers(prev => ({ ...prev, [tipId]: answer }));
+  }
 
   function toggleTip(id: string) {
     if (expandedTip === id) {
@@ -974,14 +1052,17 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
             {TIPS_ARTICLES.filter(a => a.category === tipsCategory).map(article => {
               const isExpanded = expandedTip === article.id;
               const isRead = readTips.has(article.id);
+              const userAnswer = vraiFauxAnswers[article.id] ?? null;
+              const hasAnswered = userAnswer !== null;
 
               return (
                 <TouchableOpacity
                   key={article.id}
-                  style={styles.tipCard}
+                  style={[styles.tipCard, isExpanded && styles.tipCardExpanded]}
                   onPress={() => toggleTip(article.id)}
                   activeOpacity={0.8}
                 >
+                  {/* Header */}
                   <View style={styles.tipCardHeader}>
                     <View style={styles.tipEmojiBox}>
                       <Text style={styles.tipEmoji}>{article.categoryEmoji}</Text>
@@ -1004,9 +1085,72 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
                     <Text style={styles.tipChevron}>{isExpanded ? '▲' : '▼'}</Text>
                   </View>
 
+                  {/* Contenu déroulé */}
                   {isExpanded && (
                     <View style={styles.tipContentBox}>
-                      <Text style={styles.tipContent}>{article.content}</Text>
+
+                      {/* Quiz Vrai/Faux — AVANT le contenu */}
+                      {article.vraiFaux && (
+                        <View style={styles.vraiFauxBox}>
+                          <Text style={styles.vraiFauxQuestion}>
+                            🤔 {article.vraiFaux.question}
+                          </Text>
+                          {!hasAnswered ? (
+                            <View style={styles.vraiFauxBtns}>
+                              <TouchableOpacity
+                                style={styles.vraiFauxBtnVrai}
+                                onPress={(e) => { e.stopPropagation?.(); answerVraiFaux(article.id, true); }}
+                                activeOpacity={0.8}
+                              >
+                                <Text style={styles.vraiFauxBtnText}>✅ VRAI</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.vraiFauxBtnFaux}
+                                onPress={(e) => { e.stopPropagation?.(); answerVraiFaux(article.id, false); }}
+                                activeOpacity={0.8}
+                              >
+                                <Text style={styles.vraiFauxBtnText}>❌ FAUX</Text>
+                              </TouchableOpacity>
+                            </View>
+                          ) : (
+                            <View style={[
+                              styles.vraiFauxResult,
+                              userAnswer === article.vraiFaux.answer ? styles.vraiFauxCorrect : styles.vraiFauxWrong,
+                            ]}>
+                              <Text style={styles.vraiFauxResultIcon}>
+                                {userAnswer === article.vraiFaux.answer ? '🎉' : '😅'}
+                              </Text>
+                              <Text style={styles.vraiFauxResultLabel}>
+                                {userAnswer === article.vraiFaux.answer
+                                  ? 'Bonne réponse !'
+                                  : 'Raté — la bonne réponse était : ' + (article.vraiFaux.answer ? 'VRAI' : 'FAUX')}
+                              </Text>
+                              <Text style={styles.vraiFauxExplanation}>
+                                {article.vraiFaux.explanation}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
+
+                      {/* Contenu texte — révélé seulement après quiz (ou si pas de quiz) */}
+                      {(hasAnswered || !article.vraiFaux) && (
+                        <Text style={styles.tipContent}>{article.content}</Text>
+                      )}
+
+                      {/* Bouton vidéo YouTube */}
+                      {article.videoId && (hasAnswered || !article.vraiFaux) && (
+                        <TouchableOpacity
+                          style={styles.videoBtn}
+                          onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${article.videoId}`)}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={styles.videoBtnText}>
+                            {article.videoLabel ?? '▶ Voir la vidéo'}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+
                       {!isRead && (
                         <Text style={styles.tipPointsHint}>+5 pts pour avoir lu cet article 🔥</Text>
                       )}
@@ -1817,6 +1961,103 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textPrimary,
     lineHeight: 21,
+  },
+
+  // ── Tip card expanded
+  tipCardExpanded: {
+    borderColor: Colors.darkGreen,
+    borderWidth: 1.5,
+  },
+
+  // ── Vrai/Faux quiz
+  vraiFauxBox: {
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  vraiFauxQuestion: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    lineHeight: 20,
+    marginBottom: 14,
+  },
+  vraiFauxBtns: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  vraiFauxBtnVrai: {
+    flex: 1,
+    backgroundColor: '#DCFCE7',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#16A34A',
+  },
+  vraiFauxBtnFaux: {
+    flex: 1,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#DC2626',
+  },
+  vraiFauxBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  vraiFauxResult: {
+    borderRadius: 10,
+    padding: 14,
+    gap: 6,
+  },
+  vraiFauxCorrect: {
+    backgroundColor: '#DCFCE7',
+    borderWidth: 1.5,
+    borderColor: '#16A34A',
+  },
+  vraiFauxWrong: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1.5,
+    borderColor: '#DC2626',
+  },
+  vraiFauxResultIcon: {
+    fontSize: 24,
+    textAlign: 'center',
+  },
+  vraiFauxResultLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  vraiFauxExplanation: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 19,
+    marginTop: 4,
+  },
+
+  // ── Bouton vidéo
+  videoBtn: {
+    backgroundColor: '#FF0000',
+    borderRadius: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  videoBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
   },
   tipPointsHint: {
     fontSize: 12,
