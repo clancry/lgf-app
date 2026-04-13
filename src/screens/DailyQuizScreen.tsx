@@ -44,6 +44,13 @@ const SCORE_EMOJI: Record<number, string> = {
   0: '📚',
 };
 
+// Calcule la difficulté selon les FIT Points et le mode coach
+function getDifficulty(fitPoints: number, coachMode?: string): number {
+  if (coachMode === 'warrior' || fitPoints >= 750) return 3;
+  if (coachMode === 'challenger' || fitPoints >= 300) return 2;
+  return 1;
+}
+
 export default function DailyQuizScreen({ session, onComplete }: DailyQuizScreenProps) {
   const [phase, setPhase] = useState<ScreenPhase>('loading');
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -51,6 +58,7 @@ export default function DailyQuizScreen({ session, onComplete }: DailyQuizScreen
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [answered, setAnswered] = useState(false);
   const [score, setScore] = useState(0);
+  const [difficultyLabel, setDifficultyLabel] = useState('');
 
   useEffect(() => {
     fetchQuestions();
@@ -58,8 +66,40 @@ export default function DailyQuizScreen({ session, onComplete }: DailyQuizScreen
 
   async function fetchQuestions() {
     try {
+      // 1. Vérifier si le quiz a déjà été fait aujourd'hui
+      if (session?.user) {
+        const { data: done } = await supabase
+          .rpc('has_done_quiz_today', { p_user_id: session.user.id });
+        if (done === true) {
+          onComplete(0); // Déjà fait aujourd'hui — skip
+          return;
+        }
+      }
+
+      // 2. Calculer la difficulté selon le profil
+      let difficulty = 1;
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('coach_mode')
+          .eq('id', session.user.id)
+          .single();
+        const { data: streak } = await supabase
+          .from('quiz_streaks')
+          .select('current_streak, best_streak')
+          .eq('user_id', session.user.id)
+          .single();
+        const fitPoints = (streak?.current_streak ?? 0) * 10;
+        difficulty = getDifficulty(fitPoints, profile?.coach_mode);
+        setDifficultyLabel(
+          difficulty === 3 ? '⚔️ Expert' :
+          difficulty === 2 ? '🔥 Avancé' : '🌱 Débutant'
+        );
+      }
+
+      // 3. Charger les questions selon la difficulté
       const { data, error } = await supabase
-        .rpc('get_random_quiz_questions', { n: 3 });
+        .rpc('get_daily_quiz_questions', { p_difficulty: difficulty, n: 3 });
 
       if (error || !data || data.length === 0) {
         onComplete(0);
@@ -115,8 +155,22 @@ export default function DailyQuizScreen({ session, onComplete }: DailyQuizScreen
     }
   }
 
-  function handleFinish() {
+  async function handleFinish() {
     const points = POINTS_MAP[score] ?? 5;
+    // Enregistrer le quiz du jour dans Supabase
+    if (session?.user) {
+      try {
+        await supabase.from('user_daily_quiz').upsert({
+          user_id: session.user.id,
+          quiz_date: new Date().toISOString().split('T')[0],
+          score,
+          points_earned: points,
+          questions_ids: questions.map(q => q.id),
+        }, { onConflict: 'user_id,quiz_date' });
+      } catch (e) {
+        console.log('Save quiz error:', e);
+      }
+    }
     onComplete(points);
   }
 
@@ -186,7 +240,12 @@ export default function DailyQuizScreen({ session, onComplete }: DailyQuizScreen
     <View style={styles.fullScreen}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Quiz du jour 🧠</Text>
+        <View>
+          <Text style={styles.headerTitle}>Quiz du jour 🧠</Text>
+          {difficultyLabel ? (
+            <Text style={styles.difficultyBadge}>{difficultyLabel}</Text>
+          ) : null}
+        </View>
         <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
           <Text style={styles.skipText}>Passer ›</Text>
         </TouchableOpacity>
@@ -311,6 +370,13 @@ const styles = StyleSheet.create({
   skipButton: {
     paddingHorizontal: 4,
     paddingVertical: 2,
+  },
+  difficultyBadge: {
+    fontSize: 11,
+    color: Colors.lime,
+    fontWeight: '700',
+    marginTop: 2,
+    opacity: 0.9,
   },
   skipText: {
     color: 'rgba(255,255,255,0.5)',

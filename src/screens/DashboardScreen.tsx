@@ -471,13 +471,22 @@ export default function DashboardScreen({
         source: meal.source,
       }).select().single();
 
-      if (!error && data) {
-        const newEntry = data as MealEntry;
-        const updated = [...meals, newEntry];
-        setMeals(updated);
-        recalcConsumed(updated);
-        triggerFloatAnim(meal.calories);
-      }
+      // Qu'il y ait une erreur ou non, faire une mise à jour optimiste immédiate
+      const newEntry: MealEntry = {
+        id: data?.id ?? String(Date.now()),
+        created_at: data?.created_at ?? new Date().toISOString(),
+        custom_name: meal.name,
+        custom_calories: meal.calories ?? 0,
+        custom_protein: meal.protein ?? 0,
+        custom_carbs: meal.carbs ?? 0,
+        custom_fat: meal.fat ?? 0,
+        source: meal.source,
+        meal_type: 'custom',
+      };
+      const updated = [...meals, newEntry];
+      setMeals(updated);
+      recalcConsumed(updated);
+      triggerFloatAnim(meal.calories);
     } catch (err) {
       if (Platform.OS === 'web') console.error('Insert meal error:', err);
       // Optimistic update even if insert fails
