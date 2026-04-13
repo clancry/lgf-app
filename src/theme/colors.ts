@@ -1,6 +1,6 @@
 export const Colors = {
   // Brand primaries
-  darkGreen: '#1B4332',
+  darkGreen: '#005240',
   lime: '#B5D43B',
   orange: '#E8612D',
 
@@ -35,7 +35,7 @@ export const Colors = {
 
   // Tab bar
   tabBarBackground: '#FFFFFF',
-  tabBarActive: '#1B4332',
+  tabBarActive: '#005240',
   tabBarInactive: '#9CA3AF',
 
   // Card
@@ -43,7 +43,7 @@ export const Colors = {
   cardShadow: 'rgba(0,0,0,0.08)',
 
   // Overlays
-  overlay: 'rgba(27, 67, 50, 0.6)',
+  overlay: 'rgba(0, 82, 64, 0.6)',
   overlayLight: 'rgba(0,0,0,0.3)',
 };
 

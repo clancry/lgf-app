@@ -317,7 +317,7 @@ const STATIC_CHALLENGES = [
 ];
 
 const AVATAR_COLORS = [
-  '#1B4332', '#E8612D', '#3B82F6', '#8B5CF6', '#F59E0B', '#10B981',
+  '#005240', '#E8612D', '#3B82F6', '#8B5CF6', '#F59E0B', '#10B981',
 ];
 
 function avatarColor(name: string): string {

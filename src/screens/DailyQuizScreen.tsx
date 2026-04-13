@@ -341,7 +341,7 @@ export default function DailyQuizScreen({ session, onComplete }: DailyQuizScreen
   );
 }
 
-const DARK_GREEN = '#1B4332';
+const DARK_GREEN = '#005240';
 const LIME = '#A3E635';
 const LIME_10 = 'rgba(163, 230, 53, 0.10)';
 const ORANGE_10 = 'rgba(249, 115, 22, 0.10)';
