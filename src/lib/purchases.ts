@@ -22,8 +22,8 @@ import { supabase } from './supabase';
 
 // ─── Configuration RevenueCat ──────────────────────────────────────────────────
 
-const REVENUECAT_IOS_KEY = 'appl_VOTRE_CLE_IOS_REVENUECAT';     // à remplacer
-const REVENUECAT_ANDROID_KEY = 'goog_VOTRE_CLE_ANDROID_REVENUECAT'; // à remplacer
+const REVENUECAT_IOS_KEY = 'test_YmnZUrFHrGbYpGjyHpdRZSbeiDw';
+const REVENUECAT_ANDROID_KEY = 'test_YmnZUrFHrGbYpGjyHpdRZSbeiDw'; // même clé en sandbox
 const PRODUCT_ID = 'lgf_premium_monthly';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

@@ -19,6 +19,7 @@ import CheatMealScreen from './src/screens/CheatMealScreen';
 import CoachModeScreen from './src/screens/CoachModeScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import { CoachMode } from './src/lib/coach-modes';
+import { initPurchases, purchasePremium } from './src/lib/purchases';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -46,6 +47,7 @@ export default function App() {
       async (_event, newSession) => {
         setSession(newSession);
         if (newSession?.user) {
+          initPurchases(newSession.user.id); // RevenueCat init
           await checkOnboardingStatus(newSession.user.id);
         } else {
           setAppState('login');
