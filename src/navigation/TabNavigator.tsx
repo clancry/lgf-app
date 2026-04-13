@@ -83,7 +83,7 @@ export function TabNavigator({ session, onCheatMeal, onCoachMode }: TabNavigator
         options={{
           tabBarLabel: 'Arena',
           tabBarIcon: ({ focused }) => (
-            <TabIcon emoji="⚔️" focused={focused} />
+            <TabIcon emoji="🏟️" focused={focused} />
           ),
         }}
       >
@@ -95,7 +95,7 @@ export function TabNavigator({ session, onCheatMeal, onCoachMode }: TabNavigator
         options={{
           tabBarLabel: 'Plan',
           tabBarIcon: ({ focused }) => (
-            <TabIcon emoji="⏰" focused={focused} />
+            <TabIcon emoji="📋" focused={focused} />
           ),
         }}
       >
@@ -107,7 +107,7 @@ export function TabNavigator({ session, onCheatMeal, onCoachMode }: TabNavigator
         options={{
           tabBarLabel: 'Profil',
           tabBarIcon: ({ focused }) => (
-            <TabIcon emoji="👤" focused={focused} />
+            <TabIcon emoji="😊" focused={focused} />
           ),
         }}
       >

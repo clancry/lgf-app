@@ -262,21 +262,22 @@ const styles = StyleSheet.create({
   },
   filtersRow: {
     backgroundColor: Colors.white,
-    maxHeight: 48,
   },
   filtersContent: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   filterChip: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: Colors.border,
     backgroundColor: Colors.white,
-    marginRight: 8,
+    flexShrink: 0,
   },
   filterChipSecondary: {
     backgroundColor: Colors.background,
