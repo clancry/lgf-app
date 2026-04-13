@@ -24,6 +24,7 @@ import { Colors } from '../theme/colors';
 import type { CoachMode } from '../theme/colors';
 import { supabase } from '../lib/supabase';
 import { getCoachMessage } from '../lib/coach-modes';
+import MealLogModal, { type LoggedMeal } from '../components/MealLogModal';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -520,6 +521,9 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
   // ── Edit sheet state ───────────────────────────────────────────────────────
   const [editingSlot, setEditingSlot] = useState<MealSlot | null>(null);
 
+  // ── MealLogModal state ─────────────────────────────────────────────────────
+  const [modalSlot, setModalSlot] = useState<MealSlot | null>(null);
+
   // ── Summary shown state ────────────────────────────────────────────────────
   const [summaryDismissed, setSummaryDismissed] = useState(false);
 
@@ -681,19 +685,55 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
   );
 
   // ── Toggle a slot as completed ─────────────────────────────────────────────
+  // If tapping a completed slot → undo directly (no modal needed)
+  // If tapping an uncompleted slot → open MealLogModal first
   const toggleSlot = useCallback((slot: MealSlot) => {
-    setCompletedIds((prev) => {
-      const next = new Set(prev);
-      const willBeCompleted = !next.has(slot.id);
-      if (willBeCompleted) {
-        next.add(slot.id);
-      } else {
+    const isCompleted = completedIds.has(slot.id);
+    if (isCompleted) {
+      // Undo: mark as incomplete
+      setCompletedIds((prev) => {
+        const next = new Set(prev);
         next.delete(slot.id);
-      }
-      saveSlotToSupabase(slot, willBeCompleted);
-      return next;
-    });
-  }, [saveSlotToSupabase]);
+        saveSlotToSupabase(slot, false);
+        return next;
+      });
+    } else {
+      // Open modal for meal selection
+      setModalSlot(slot);
+    }
+  }, [completedIds, saveSlotToSupabase]);
+
+  // ── Handle meal confirmed from MealLogModal ────────────────────────────────
+  const handleMealConfirmed = useCallback(
+    (meal: LoggedMeal) => {
+      if (!modalSlot) return;
+      const slotId = modalSlot.id;
+
+      // Update slot with real nutritional values from the logged meal
+      const updates: Partial<MealSlot> = {
+        recipeName: meal.name,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        ...(meal.recipeId != null ? { recipeId: String(meal.recipeId) } : {}),
+      };
+      setSlots((prev) =>
+        prev.map((s) => (s.id === slotId ? { ...s, ...updates } : s)),
+      );
+
+      // Mark as completed
+      setCompletedIds((prev) => {
+        const next = new Set(prev);
+        next.add(slotId);
+        saveSlotToSupabase({ ...modalSlot, ...updates } as MealSlot, true);
+        return next;
+      });
+
+      setModalSlot(null);
+    },
+    [modalSlot, saveSlotToSupabase],
+  );
 
   // ── Update a slot's macros/name (from edit sheet) ──────────────────────────
   const updateSlot = useCallback((slotId: string, updates: Partial<MealSlot>) => {
@@ -1090,6 +1130,30 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
           slot={editingSlot}
           onConfirm={(updates) => updateSlot(editingSlot.id, updates)}
           onClose={() => setEditingSlot(null)}
+        />
+      )}
+
+      {/* ── MealLogModal ─────────────────────────────────────────────────── */}
+      {modalSlot && (
+        <MealLogModal
+          visible={modalSlot !== null}
+          onClose={() => setModalSlot(null)}
+          onConfirm={handleMealConfirmed}
+          session={session}
+          mealType={modalSlot.type}
+          regime={profile?.regime ?? 'equilibre'}
+          suggestion={
+            modalSlot.recipeName
+              ? {
+                  name: modalSlot.recipeName,
+                  calories: modalSlot.calories,
+                  protein: modalSlot.protein,
+                  carbs: modalSlot.carbs,
+                  fat: modalSlot.fat,
+                  recipeId: modalSlot.recipeId ? Number(modalSlot.recipeId) : undefined,
+                }
+              : undefined
+          }
         />
       )}
     </SafeAreaView>
