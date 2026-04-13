@@ -61,6 +61,10 @@ export default function App() {
 
   async function checkOnboardingStatus(userId: string) {
     const { profile } = await getProfile(userId);
+    // Synchroniser le mode coach depuis le profil Supabase
+    if (profile?.coach_mode) {
+      setCoachMode(profile.coach_mode as CoachMode);
+    }
     if (profile?.onboarding_done) {
       setAppState('dailyquiz');
     } else {
@@ -112,7 +116,7 @@ export default function App() {
         <CheatMealScreen
           session={session}
           coachMode={coachMode}
-          regime="seche"
+          regime={session ? 'seche' : 'equilibre'} // sera remplacé par le profil réel
           dailyCalories={1800}
           onClose={() => setShowCheatMeal(false)}
         />
