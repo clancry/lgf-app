@@ -57,6 +57,8 @@ interface MealLogModalProps {
   session: Session | null;
   mealType: string;
   regime: string;
+  eatenAt?: string;         // heure pré-remplie (HH:MM)
+  onEatenAtChange?: (t: string) => void;
   suggestion?: {
     name: string;
     calories: number;
@@ -66,6 +68,15 @@ interface MealLogModalProps {
     recipeId?: number;
   };
 }
+
+// Créneaux horaires disponibles pour la saisie d'heure
+const TIME_SLOTS: string[] = [
+  '06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30',
+  '10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30',
+  '14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30',
+  '18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30',
+  '22:00','22:30',
+];
 
 type Tab = 'lgf' | 'manual' | 'scan';
 
@@ -1058,9 +1069,12 @@ export default function MealLogModal({
   session,
   mealType,
   regime,
+  eatenAt,
+  onEatenAtChange,
   suggestion,
 }: MealLogModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>('lgf');
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'lgf', label: '🧊 Nos plats' },
@@ -1097,6 +1111,45 @@ export default function MealLogModal({
               <Text style={modalStyles.closeBtnText}>✕</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Heure du repas */}
+          <TouchableOpacity
+            style={modalStyles.timeRow}
+            onPress={() => setShowTimePicker(!showTimePicker)}
+            activeOpacity={0.8}
+          >
+            <Text style={modalStyles.timeLabel}>🕐 Heure du repas :</Text>
+            <Text style={modalStyles.timeValue}>{eatenAt ?? '--:--'}</Text>
+            <Text style={modalStyles.timeChevron}>{showTimePicker ? '▲' : '▼'}</Text>
+          </TouchableOpacity>
+
+          {showTimePicker && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={modalStyles.timeSlotsContent}
+              style={modalStyles.timeSlotsRow}
+            >
+              {TIME_SLOTS.map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  style={[
+                    modalStyles.timeSlot,
+                    eatenAt === t && modalStyles.timeSlotActive,
+                  ]}
+                  onPress={() => {
+                    onEatenAtChange?.(t);
+                    setShowTimePicker(false);
+                  }}
+                >
+                  <Text style={[
+                    modalStyles.timeSlotText,
+                    eatenAt === t && modalStyles.timeSlotTextActive,
+                  ]}>{t}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
 
           {/* Tabs */}
           <View style={modalStyles.tabBar}>
@@ -1216,5 +1269,56 @@ const modalStyles = StyleSheet.create({
   body: {
     flex: 1,
     backgroundColor: Colors.white,
+  },
+
+  /* Heure du repas */
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  timeLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.75)',
+    fontWeight: '500',
+  },
+  timeValue: {
+    fontSize: 14,
+    color: Colors.lime,
+    fontWeight: '800',
+    flex: 1,
+  },
+  timeChevron: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  timeSlotsRow: {
+    maxHeight: 44,
+    marginBottom: 4,
+  },
+  timeSlotsContent: {
+    paddingHorizontal: 16,
+    gap: 6,
+    alignItems: 'center',
+  },
+  timeSlot: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  timeSlotActive: {
+    backgroundColor: Colors.lime,
+  },
+  timeSlotText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.85)',
+  },
+  timeSlotTextActive: {
+    color: Colors.darkGreen,
+    fontWeight: '800',
   },
 });

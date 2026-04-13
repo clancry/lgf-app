@@ -523,6 +523,7 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
 
   // ── MealLogModal state ─────────────────────────────────────────────────────
   const [modalSlot, setModalSlot] = useState<MealSlot | null>(null);
+  const [modalEatenAt, setModalEatenAt] = useState<string>('');  // heure réelle du repas
 
   // ── Summary shown state ────────────────────────────────────────────────────
   const [summaryDismissed, setSummaryDismissed] = useState(false);
@@ -568,17 +569,18 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
         const today = todayISO();
         const { data } = await supabase
           .from('meal_plans')
-          .select('meal_type')
+          .select('custom_slot_id')
           .eq('user_id', session.user.id)
           .eq('date', today)
           .eq('is_completed', true);
 
         if (data && data.length > 0) {
-          const completedTypes = new Set(data.map((r: { meal_type: string }) => r.meal_type));
-          const completedSlotIds = new Set<string>();
-          builtSlots.forEach((s) => {
-            if (completedTypes.has(s.type)) completedSlotIds.add(s.id);
-          });
+          // Correspondance par slot_id unique — plus de confusion entre slots du même type
+          const completedSlotIds = new Set(
+            data
+              .map((r: { custom_slot_id: string | null }) => r.custom_slot_id)
+              .filter((id): id is string => id !== null),
+          );
           setCompletedIds(completedSlotIds);
         }
       } catch (_) {
@@ -590,17 +592,19 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
 
   // ── Save / unsave a slot completion to Supabase ────────────────────────────
   const saveSlotToSupabase = useCallback(
-    async (slot: MealSlot, isCompleted: boolean) => {
+    async (slot: MealSlot, isCompleted: boolean, eatenAt?: string) => {
       if (!session?.user) return;
       try {
         const today = todayISO();
         if (isCompleted) {
           await supabase.from('meal_plans').upsert({
-            user_id:      session.user.id,
-            date:         today,
-            meal_type:    slot.type,
-            recipe_id:    slot.recipeId ?? null,
-            is_completed: true,
+            user_id:         session.user.id,
+            date:            today,
+            meal_type:       slot.type,
+            custom_slot_id:  slot.id,         // clé unique → plus de bug d'encoche
+            recipe_id:       slot.recipeId ?? null,
+            is_completed:    true,
+            custom_time:     eatenAt ?? slot.time,  // heure réelle du repas
           });
         } else {
           await supabase
@@ -608,7 +612,7 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
             .update({ is_completed: false })
             .eq('user_id', session.user.id)
             .eq('date', today)
-            .eq('meal_type', slot.type);
+            .eq('custom_slot_id', slot.id);   // filtre par slot_id, pas par type
         }
       } catch (_) {
         // Silently fail
@@ -700,6 +704,7 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
     } else {
       // Open modal for meal selection
       setModalSlot(slot);
+      setModalEatenAt(currentTimeHHMM()); // pré-remplir avec l'heure actuelle
     }
   }, [completedIds, saveSlotToSupabase]);
 
@@ -709,13 +714,14 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
       if (!modalSlot) return;
       const slotId = modalSlot.id;
 
-      // Update slot with real nutritional values from the logged meal
+      // Update slot avec valeurs réelles + heure choisie
       const updates: Partial<MealSlot> = {
         recipeName: meal.name,
         calories: meal.calories,
         protein: meal.protein,
         carbs: meal.carbs,
         fat: meal.fat,
+        time: modalEatenAt || modalSlot.time,  // heure réelle
         ...(meal.recipeId != null ? { recipeId: String(meal.recipeId) } : {}),
       };
       setSlots((prev) =>
@@ -726,13 +732,13 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
       setCompletedIds((prev) => {
         const next = new Set(prev);
         next.add(slotId);
-        saveSlotToSupabase({ ...modalSlot, ...updates } as MealSlot, true);
+        saveSlotToSupabase({ ...modalSlot, ...updates } as MealSlot, true, modalEatenAt || modalSlot.time);
         return next;
       });
 
       setModalSlot(null);
     },
-    [modalSlot, saveSlotToSupabase],
+    [modalSlot, modalEatenAt, saveSlotToSupabase],
   );
 
   // ── Update a slot's macros/name (from edit sheet) ──────────────────────────
@@ -1142,6 +1148,8 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
           session={session}
           mealType={modalSlot.type}
           regime={profile?.regime ?? 'equilibre'}
+          eatenAt={modalEatenAt}
+          onEatenAtChange={setModalEatenAt}
           suggestion={
             modalSlot.recipeName
               ? {
