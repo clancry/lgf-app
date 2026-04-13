@@ -377,7 +377,8 @@ export default function DashboardScreen({
   const [consumed, setConsumed] = useState<Consumed>({ kcal: 0, protein: 0, carbs: 0, fat: 0 });
   const [modalVisible, setModalVisible] = useState(false);
   const [modalSlotType, setModalSlotType] = useState('custom');
-  const [streak] = useState(7); // TODO: load from Supabase quiz streak
+  const [streak, setStreak] = useState(0);
+  const [fitPoints, setFitPoints] = useState(0);
 
   // Floating +kcal animation
   const floatAnim = useRef(new Animated.Value(0)).current;
@@ -393,7 +394,7 @@ export default function DashboardScreen({
   const loadData = useCallback(async () => {
     if (!session?.user) return;
     try {
-      const [profileRes, mealsRes] = await Promise.all([
+      const [profileRes, mealsRes, streakRes] = await Promise.all([
         supabase
           .from('profiles')
           .select('first_name, regime, daily_calories, meals_per_day, training_time, coach_mode, wallet_balance')
@@ -405,9 +406,19 @@ export default function DashboardScreen({
           .eq('user_id', session.user.id)
           .eq('date', getTodayISO())
           .order('created_at'),
+        supabase
+          .from('quiz_streaks')
+          .select('current_streak')
+          .eq('user_id', session.user.id)
+          .single(),
       ]);
 
       if (profileRes.data) setProfile(profileRes.data as Profile);
+      if (streakRes.data) {
+        const s = streakRes.data.current_streak ?? 0;
+        setStreak(s);
+        setFitPoints(s * 15); // 15 pts par jour de streak
+      }
 
       const mealData = (mealsRes.data ?? []) as MealEntry[];
       setMeals(mealData);
@@ -565,6 +576,9 @@ export default function DashboardScreen({
               <Text style={styles.date}>{formatDate()}</Text>
             </View>
             <View style={styles.headerBadges}>
+              <View style={styles.fitPointsBadge}>
+                <Text style={styles.fitPointsText}>⚡ {fitPoints} pts</Text>
+              </View>
               <View style={styles.streakBadge}>
                 <Text style={styles.streakText}>🔥 {streak}j</Text>
               </View>
@@ -718,6 +732,19 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 22, fontWeight: '800', color: Colors.white },
   date: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 2, textTransform: 'capitalize' },
   headerBadges: { alignItems: 'flex-end', gap: 6 },
+  fitPointsBadge: {
+    backgroundColor: Colors.lime + '25',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: Colors.lime + '60',
+  },
+  fitPointsText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.lime,
+  },
   streakBadge: {
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 20,

@@ -45,12 +45,11 @@ const REGIMES = [
 ];
 
 const CATEGORIES = [
-  { key: '', label: 'Tout' },
-  { key: 'repas', label: '🍽️ Repas' },
-  { key: 'snack', label: '🍎 Snack' },
-  { key: 'dessert', label: '🍮 Dessert' },
-  { key: 'patisserie', label: '🧁 Pâtisserie' },
-  { key: 'petit_dejeuner', label: '🌅 Petit-déj' },
+  { key: '',           label: 'Tout' },
+  { key: 'repas',      label: '🍱 Repas' },
+  { key: 'snack',      label: '🥤 Collation' },
+  { key: 'dessert',    label: '🍧 Dessert' },
+  { key: 'patisserie', label: '🍪 Pâtisserie' },
 ];
 
 export default function RecipesScreen({ session }: RecipesScreenProps) {
