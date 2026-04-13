@@ -102,6 +102,36 @@ interface SlotDef {
   supabaseCategory?: string; // 'repas' | 'snack'
 }
 
+
+function offsetDate(iso: string, days: number): string {
+  const d = new Date(iso + 'T12:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0] as string;
+}
+
+function formatDayLabel(iso: string): string {
+  const today = todayISO();
+  const yesterday = offsetDate(today, -1);
+  const tomorrow  = offsetDate(today, +1);
+  if (iso === today)     return "Aujourd'hui";
+  if (iso === yesterday) return 'Hier';
+  if (iso === tomorrow)  return 'Demain';
+  return new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long',
+  });
+}
+
+function isDateInWeek(iso: string): boolean {
+  const today = new Date();
+  const dayOfWeek = (today.getDay() + 6) % 7;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - dayOfWeek);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const d = new Date(iso + 'T12:00:00');
+  return d >= monday && d <= sunday;
+}
+
 function parseHHMM(hhmm: string): { h: number; m: number } {
   const [h, m] = hhmm.split(':').map(Number);
   return { h: h ?? 0, m: m ?? 0 };
@@ -508,6 +538,9 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
   const [profile, setProfile]         = useState<Profile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
+  // ── Date navigation ────────────────────────────────────────────────────────
+  const [selectedDate, setSelectedDate] = useState<string>(todayISO());  // date affichée
+
   // ── Flow state ─────────────────────────────────────────────────────────────
   const [dayType, setDayType]               = useState<DayType>(null);
   const [trainingTime, setTrainingTime]     = useState<string>('18:00');
@@ -527,6 +560,10 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
 
   // ── Summary shown state ────────────────────────────────────────────────────
   const [summaryDismissed, setSummaryDismissed] = useState(false);
+
+  // ── Ref pour la date sélectionnée (accessible dans les callbacks sans re-créer) ─
+  const selectedDateRef = React.useRef(selectedDate);
+  useEffect(() => { selectedDateRef.current = selectedDate; }, [selectedDate]);
 
   // ── Load profile ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -566,7 +603,7 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
     async (builtSlots: MealSlot[]) => {
       if (!session?.user) return;
       try {
-        const today = todayISO();
+        const today = selectedDateRef.current;
         const { data } = await supabase
           .from('meal_plans')
           .select('custom_slot_id, custom_name, custom_calories, custom_protein, custom_carbs, custom_fat, custom_time, recipe_id, source')
@@ -608,7 +645,7 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
     async (slot: MealSlot, isCompleted: boolean, eatenAt?: string) => {
       if (!session?.user) return;
       try {
-        const today = todayISO();
+        const today = selectedDateRef.current;
         if (isCompleted) {
           await supabase.from('meal_plans').upsert(
             {
@@ -635,7 +672,7 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
             .update({ is_completed: false })
             .eq('user_id', session.user.id)
             .eq('date', today)
-            .eq('custom_slot_id', slot.id);   // filtre par slot_id, pas par type
+            .eq('custom_slot_id', slot.id);
         }
       } catch (_) {
         // Silently fail
@@ -820,12 +857,37 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView contentContainerStyle={styles.questionnaireScroll} showsVerticalScrollIndicator={false}>
+          {/* Nav jour */}
+          <View style={styles.dayNav}>
+            <TouchableOpacity
+              style={styles.dayNavBtn}
+              onPress={() => setSelectedDate(d => offsetDate(d, -1))}
+            >
+              <Text style={styles.dayNavArrow}>‹</Text>
+            </TouchableOpacity>
+            <View style={styles.dayNavCenter}>
+              <Text style={styles.dayNavLabel}>{formatDayLabel(selectedDate)}</Text>
+              {selectedDate !== todayISO() && (
+                <TouchableOpacity onPress={() => setSelectedDate(todayISO())}>
+                  <Text style={styles.dayNavBack}>Retour aujourd'hui</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              style={[styles.dayNavBtn, selectedDate >= todayISO() && styles.dayNavBtnDisabled]}
+              onPress={() => { if (selectedDate < todayISO()) setSelectedDate(d => offsetDate(d, +1)); }}
+              disabled={selectedDate >= todayISO()}
+            >
+              <Text style={[styles.dayNavArrow, selectedDate >= todayISO() && styles.dayNavArrowDisabled]}>›</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Header */}
           <View style={styles.qHeader}>
             <Text style={styles.qGreeting}>
               Bonjour <Text style={styles.qName}>{profile?.first_name ?? 'toi'} 👋</Text>
             </Text>
-            <Text style={styles.qDate}>{todayFR()}</Text>
+            <Text style={styles.qDate}>{formatDayLabel(selectedDate)}</Text>
           </View>
 
           <Text style={styles.qTitle}>C'est quoi le programme aujourd'hui ?</Text>
@@ -901,6 +963,31 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
 
         {/* ── Sticky header: progression ──────────────────────────────────── */}
         <View style={styles.progressHeader}>
+          {/* Nav jours — phase plan */}
+          <View style={styles.dayNav}>
+            <TouchableOpacity
+              style={styles.dayNavBtn}
+              onPress={() => setSelectedDate(d => offsetDate(d, -1))}
+            >
+              <Text style={styles.dayNavArrow}>‹</Text>
+            </TouchableOpacity>
+            <View style={styles.dayNavCenter}>
+              <Text style={styles.dayNavLabel}>{formatDayLabel(selectedDate)}</Text>
+              {selectedDate !== todayISO() && (
+                <TouchableOpacity onPress={() => setSelectedDate(todayISO())}>
+                  <Text style={styles.dayNavBack}>Retour aujourd'hui</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              style={[styles.dayNavBtn, selectedDate >= todayISO() && styles.dayNavBtnDisabled]}
+              onPress={() => { if (selectedDate < todayISO()) setSelectedDate(d => offsetDate(d, +1)); }}
+              disabled={selectedDate >= todayISO()}
+            >
+              <Text style={[styles.dayNavArrow, selectedDate >= todayISO() && styles.dayNavArrowDisabled]}>›</Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.progressTop}>
             <View>
               <Text style={styles.progressTitle}>Plan du jour</Text>

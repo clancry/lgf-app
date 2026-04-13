@@ -90,6 +90,37 @@ const SOURCE_ICONS: Record<string, string> = {
   user_recipe: '📖',
 };
 
+
+// ─── Helpers semaine ──────────────────────────────────────────────────────────
+
+const JOURS_COURTS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+function getWeekDates(): string[] {
+  // Retourne les 7 ISO dates de la semaine courante (lundi → dimanche)
+  const now = new Date();
+  const dayOfWeek = (now.getDay() + 6) % 7; // lundi = 0
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now);
+    d.setDate(now.getDate() - dayOfWeek + i);
+    return d.toISOString().split('T')[0] as string;
+  });
+}
+
+function isoToFR(iso: string): string {
+  return new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long',
+  });
+}
+
+interface DayData {
+  date: string;
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  count: number;  // nb de repas
+}
+
 function formatDate(): string {
   return new Date().toLocaleDateString('fr-FR', {
     weekday: 'long',
@@ -379,6 +410,8 @@ export default function DashboardScreen({
   const [modalSlotType, setModalSlotType] = useState('custom');
   const [streak, setStreak] = useState(0);
   const [fitPoints, setFitPoints] = useState(0);
+  const [weekData, setWeekData] = useState<Record<string, DayData>>({});
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);  // ISO date sélectionnée
 
   // Floating +kcal animation
   const floatAnim = useRef(new Animated.Value(0)).current;
@@ -394,7 +427,8 @@ export default function DashboardScreen({
   const loadData = useCallback(async () => {
     if (!session?.user) return;
     try {
-      const [profileRes, mealsRes, streakRes] = await Promise.all([
+      const weekDates = getWeekDates();
+      const [profileRes, mealsRes, streakRes, weekRes] = await Promise.all([
         supabase
           .from('profiles')
           .select('first_name, regime, daily_calories, meals_per_day, training_time, coach_mode, wallet_balance')
@@ -411,9 +445,31 @@ export default function DashboardScreen({
           .select('current_streak')
           .eq('user_id', session.user.id)
           .single(),
+        supabase
+          .from('meal_plans')
+          .select('date, custom_calories, custom_protein, custom_carbs, custom_fat')
+          .eq('user_id', session.user.id)
+          .eq('is_completed', true)
+          .gte('date', weekDates[0]!)
+          .lte('date', weekDates[6]!),
       ]);
 
       if (profileRes.data) setProfile(profileRes.data as Profile);
+
+      // Agréger les données par jour
+      const wData: Record<string, DayData> = {};
+      weekDates.forEach(d => { wData[d] = { date: d, kcal: 0, protein: 0, carbs: 0, fat: 0, count: 0 }; });
+      ((weekRes.data ?? []) as any[]).forEach((row) => {
+        const d = row.date as string;
+        if (wData[d]) {
+          wData[d].kcal    += row.custom_calories ?? 0;
+          wData[d].protein += row.custom_protein  ?? 0;
+          wData[d].carbs   += row.custom_carbs    ?? 0;
+          wData[d].fat     += row.custom_fat      ?? 0;
+          wData[d].count   += 1;
+        }
+      });
+      setWeekData(wData);
       if (streakRes.data) {
         const s = streakRes.data.current_streak ?? 0;
         setStreak(s);
@@ -635,25 +691,104 @@ export default function DashboardScreen({
           </TouchableOpacity>
         </View>
 
-        {/* ── TIMELINE ── */}
+        {/* ── WIDGET SEMAINE ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Timeline du jour</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.timeline}
-          >
-            {timeline.map((slot, idx) => (
-              <TimelineSlotCard
-                key={idx}
-                slot={slot}
-                onPress={() => {
-                  setModalSlotType(slot.label);
-                  setModalVisible(true);
-                }}
-              />
-            ))}
-          </ScrollView>
+          <View style={styles.weekHeader}>
+            <Text style={styles.sectionTitle}>Ma semaine</Text>
+            <Text style={styles.weekPct}>
+              {(() => {
+                const weekDates = getWeekDates();
+                const total = weekDates.reduce((s, d) => s + (weekData[d]?.kcal ?? 0), 0);
+                const goal  = kcalGoal * 7;
+                return `${Math.round((total / goal) * 100)}% objectif`;
+              })()}
+            </Text>
+          </View>
+
+          {/* Barres L→D */}
+          <View style={styles.weekGrid}>
+            {getWeekDates().map((date, idx) => {
+              const day    = weekData[date];
+              const pct    = day ? Math.min((day.kcal / kcalGoal) * 100, 100) : 0;
+              const isToday   = date === getTodayISO();
+              const isSelected = date === selectedDay;
+              const color = pct >= 90 ? Colors.lime : pct >= 60 ? Colors.success : Colors.border;
+              return (
+                <TouchableOpacity
+                  key={date}
+                  style={styles.weekDayCol}
+                  onPress={() => setSelectedDay(isSelected ? null : date)}
+                  activeOpacity={0.75}
+                >
+                  {/* Barre */}
+                  <View style={styles.weekBarTrack}>
+                    <View style={[
+                      styles.weekBarFill,
+                      { height: `${Math.max(pct, 4)}%` as any, backgroundColor: color },
+                    ]} />
+                  </View>
+                  {/* % */}
+                  <Text style={[styles.weekPctLabel, isToday && styles.weekPctLabelToday]}>
+                    {pct > 0 ? `${Math.round(pct)}%` : '–'}
+                  </Text>
+                  {/* Jour */}
+                  <View style={[
+                    styles.weekDayBadge,
+                    isToday && styles.weekDayBadgeToday,
+                    isSelected && styles.weekDayBadgeSelected,
+                  ]}>
+                    <Text style={[
+                      styles.weekDayText,
+                      isToday && styles.weekDayTextToday,
+                      isSelected && styles.weekDayTextSelected,
+                    ]}>
+                      {JOURS_COURTS[idx]}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Détail du jour sélectionné */}
+          {selectedDay && weekData[selectedDay] && (
+            <View style={styles.weekDetail}>
+              <View style={styles.weekDetailHeader}>
+                <Text style={styles.weekDetailDate}>{isoToFR(selectedDay)}</Text>
+                <TouchableOpacity onPress={() => setSelectedDay(null)}>
+                  <Text style={styles.weekDetailClose}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              {weekData[selectedDay]!.count === 0 ? (
+                <Text style={styles.weekDetailEmpty}>Aucun repas enregistré ce jour.</Text>
+              ) : (
+                <>
+                  <View style={styles.weekDetailRow}>
+                    <Text style={styles.weekDetailKcal}>
+                      {Math.round(weekData[selectedDay]!.kcal)} kcal
+                    </Text>
+                    <Text style={styles.weekDetailGoal}>/ {kcalGoal} objectif</Text>
+                  </View>
+                  <View style={styles.weekDetailMacros}>
+                    {[
+                      { l: 'P', v: weekData[selectedDay]!.protein, c: Colors.proteines },
+                      { l: 'G', v: weekData[selectedDay]!.carbs,   c: Colors.glucides },
+                      { l: 'L', v: weekData[selectedDay]!.fat,     c: Colors.lipides },
+                    ].map(({ l, v, c }) => (
+                      <View key={l} style={[styles.weekMacroPill, { borderColor: c + '50', backgroundColor: c + '15' }]}>
+                        <Text style={[styles.weekMacroPillText, { color: c }]}>{l} {Math.round(v)}g</Text>
+                      </View>
+                    ))}
+                    <View style={styles.weekMealsCount}>
+                      <Text style={styles.weekMealsCountText}>
+                        {weekData[selectedDay]!.count} repas
+                      </Text>
+                    </View>
+                  </View>
+                </>
+              )}
+            </View>
+          )}
         </View>
 
         {/* ── REPAS DU JOUR ── */}
@@ -828,6 +963,45 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 20,
   },
+
+
+  // Semaine
+  weekHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  weekPct: { fontSize: 12, fontWeight: '700', color: Colors.lime },
+  weekGrid: { flexDirection: 'row', gap: 6, height: 140, alignItems: 'flex-end' },
+  weekDayCol: { flex: 1, alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' },
+  weekBarTrack: {
+    flex: 1, width: '100%', backgroundColor: Colors.border,
+    borderRadius: 6, overflow: 'hidden', justifyContent: 'flex-end',
+  },
+  weekBarFill: { width: '100%', borderRadius: 6, minHeight: 4 },
+  weekPctLabel: { fontSize: 9, color: Colors.textMuted, fontWeight: '600' },
+  weekPctLabelToday: { color: Colors.darkGreen, fontWeight: '800' },
+  weekDayBadge: {
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center',
+  },
+  weekDayBadgeToday: { backgroundColor: Colors.darkGreen },
+  weekDayBadgeSelected: { backgroundColor: Colors.lime },
+  weekDayText: { fontSize: 11, fontWeight: '700', color: Colors.textMuted },
+  weekDayTextToday: { color: Colors.white },
+  weekDayTextSelected: { color: Colors.darkGreen },
+  weekDetail: {
+    marginTop: 14, backgroundColor: Colors.white, borderRadius: 14,
+    padding: 14, borderWidth: 1, borderColor: Colors.border,
+  },
+  weekDetailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  weekDetailDate: { fontSize: 13, fontWeight: '700', color: Colors.textPrimary, textTransform: 'capitalize' },
+  weekDetailClose: { fontSize: 14, color: Colors.textMuted, paddingHorizontal: 4 },
+  weekDetailRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 10 },
+  weekDetailKcal: { fontSize: 28, fontWeight: '800', color: Colors.darkGreen },
+  weekDetailGoal: { fontSize: 13, color: Colors.textMuted },
+  weekDetailEmpty: { fontSize: 13, color: Colors.textMuted, fontStyle: 'italic', textAlign: 'center', paddingVertical: 8 },
+  weekDetailMacros: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  weekMacroPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1 },
+  weekMacroPillText: { fontSize: 12, fontWeight: '700' },
+  weekMealsCount: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: Colors.background },
+  weekMealsCountText: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
 
   // Breakfast compact (scale down via outer container)
   breakfastCompact: {},
