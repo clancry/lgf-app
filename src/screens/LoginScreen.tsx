@@ -17,6 +17,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleAuth = async () => {
     if (!email.trim() || !password) {
@@ -126,14 +127,25 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             />
 
             <Text style={styles.inputLabel}>Mot de passe</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder={isRegister ? 'Minimum 6 caractères' : '••••••••'}
-              placeholderTextColor="#999"
-              secureTextEntry
-            />
+            <View style={styles.passwordWrapper}>
+              <TextInput
+                style={styles.passwordInput}
+                value={password}
+                onChangeText={setPassword}
+                placeholder={isRegister ? 'Minimum 6 caractères' : '••••••••'}
+                placeholderTextColor="#999"
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+              </TouchableOpacity>
+            </View>
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -227,6 +239,28 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: '#f5f5f5', borderRadius: 12, paddingHorizontal: 16,
     paddingVertical: 14, fontSize: 15, color: '#111', borderWidth: 1, borderColor: '#e8e8e8',
+  },
+  passwordWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e8e8e8',
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: '#111',
+  },
+  eyeBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  eyeIcon: {
+    fontSize: 18,
   },
   error: { color: '#E8612D', fontSize: 13, textAlign: 'center', marginTop: 12 },
 
