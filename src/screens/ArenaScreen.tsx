@@ -373,6 +373,8 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
   const [quizAnswers, setQuizAnswers] = useState<(number | null)[]>(Array(5).fill(null));
   const [quizFinished, setQuizFinished] = useState(false);
   const [quizPointsAwarded, setQuizPointsAwarded] = useState(false);
+  const [quizDoneToday, setQuizDoneToday] = useState(false);
+  const [quizTodayResult, setQuizTodayResult] = useState<{ score: number; points: number } | null>(null);
 
   function handleAnswer(idx: number) {
     if (selectedAnswer !== null) return;
@@ -397,13 +399,30 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
     0
   );
 
-  // Charger les questions au mount — aléatoires depuis Supabase
+  // Charger les questions — avec vérification 1x/jour
   useEffect(() => {
     async function fetchQuizQuestions() {
       try {
+        // Vérifier si déjà fait aujourd'hui
+        if (session?.user) {
+          const today = new Date().toISOString().split('T')[0];
+          const { data: done } = await supabase
+            .from('user_daily_quiz')
+            .select('score, points_earned')
+            .eq('user_id', session.user.id)
+            .eq('quiz_date', today)
+            .single();
+          if (done) {
+            setQuizDoneToday(true);
+            setQuizTodayResult({ score: done.score, points: done.points_earned });
+            setQuizLoading(false);
+            return;
+          }
+        }
+
         const { data, error } = await supabase.rpc('get_random_quiz_questions', { n: 5 });
         if (!error && data && data.length > 0) {
-          setQuizQuestions(data.map((q: any, i: number) => ({
+          setQuizQuestions(data.map((q: any) => ({
             id: String(q.id),
             category: q.category,
             categoryEmoji: q.emoji || '❓',
@@ -421,15 +440,28 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
       }
     }
     fetchQuizQuestions();
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     if (quizFinished && !quizPointsAwarded) {
       const pts = getQuizPoints(quizScore);
       awardPoints(pts, 'quiz');
       setQuizPointsAwarded(true);
+      // Sauvegarder dans Supabase
+      if (session?.user) {
+        const today = new Date().toISOString().split('T')[0];
+        supabase.from('user_daily_quiz').upsert({
+          user_id: session.user.id,
+          quiz_date: today,
+          score: quizScore,
+          points_earned: pts,
+        }, { onConflict: 'user_id,quiz_date' }).then(() => {
+          setQuizDoneToday(true);
+          setQuizTodayResult({ score: quizScore, points: pts });
+        });
+      }
     }
-  }, [quizFinished]);
+  }, [quizFinished, quizScore]);
 
   function restartQuiz() {
     setQuizIndex(0);
@@ -626,6 +658,26 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
                 <Text style={styles.resultStreakText}>🔥 Streak : {streak} jours</Text>
               </View>
 
+              {/* Commentaire coach selon le score */}
+              <View style={styles.quizCoachComment}>
+                <Text style={styles.quizCoachCommentText}>
+                  {quizScore === 5
+                    ? '🏆 Parfait ! 5/5 — Tu es une encyclopédie vivante. Continuer comme ça !'
+                    : quizScore === 4
+                    ? '🥇 Excellent ! 4/5 — Un tout petit effort et tu toucheras la perfection.'
+                    : quizScore === 3
+                    ? '🥈 Bien joué ! 3/5 — Tu progresses. Reviens demain pour aller plus loin.'
+                    : quizScore === 2
+                    ? '💪 2/5 — C\'est un début. Consulte les tips pour t\'améliorer !'
+                    : quizScore === 1
+                    ? '📚 1/5 — N\'abandonne pas. Chaque jour compte.'
+                    : '📚 0/5 — Ça arrive ! Commence par lire les tips de l\'Arena.'}
+                </Text>
+                <Text style={styles.quizCoachReviensDemain}>
+                  Reviens demain pour le prochain quiz 👋
+                </Text>
+              </View>
+
               <TouchableOpacity
                 style={styles.shareButton}
                 onPress={() => {
@@ -641,9 +693,7 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
                 <Text style={styles.shareButtonText}>📣 Partager sur le Feed</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.restartButton} onPress={restartQuiz}>
-                <Text style={styles.restartButtonText}>Recommencer le quiz</Text>
-              </TouchableOpacity>
+              {/* Recommencer désactivé — 1x par jour */}
             </View>
           ) : (
             <View>
@@ -1512,6 +1562,52 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
   },
+
+  // ── Quiz déjà fait aujourd'hui
+  quizDoneCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: Colors.lime,
+    marginBottom: 16,
+  },
+  quizDoneEmoji: { fontSize: 56, marginBottom: 4 },
+  quizDoneTitle: { fontSize: 16, fontWeight: '700', color: Colors.textSecondary },
+  quizDoneScore: { fontSize: 48, fontWeight: '800', color: Colors.darkGreen },
+  quizDonePoints: {
+    fontSize: 18, fontWeight: '800', color: Colors.white,
+    backgroundColor: Colors.lime, paddingHorizontal: 20, paddingVertical: 6, borderRadius: 20,
+    overflow: 'hidden', marginVertical: 4,
+  },
+  quizDoneComment: {
+    fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 20,
+    marginTop: 4,
+  },
+  quizDoneSeparator: { width: '100%', height: 1, backgroundColor: Colors.border, marginVertical: 12 },
+  quizDoneNextLabel: { fontSize: 12, color: Colors.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  quizDoneNextTime: { fontSize: 24, fontWeight: '800', color: Colors.darkGreen },
+
+  // ── Commentaire coach en fin de quiz
+  quizCoachComment: {
+    backgroundColor: Colors.background,
+    borderRadius: 14,
+    padding: 16,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 8,
+  },
+  quizCoachCommentText: {
+    fontSize: 14, color: Colors.textPrimary, fontWeight: '600', lineHeight: 20,
+    textAlign: 'center',
+  },
+  quizCoachReviensDemain: {
+    fontSize: 12, color: Colors.textMuted, textAlign: 'center', fontStyle: 'italic',
+  },
+
   restartButton: {
     backgroundColor: Colors.background,
     borderRadius: 14,

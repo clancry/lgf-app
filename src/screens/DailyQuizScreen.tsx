@@ -31,16 +31,20 @@ interface QuizQuestion {
 type ScreenPhase = 'loading' | 'question' | 'result';
 
 const POINTS_MAP: Record<number, number> = {
-  3: 30,
-  2: 20,
-  1: 10,
+  5: 50,
+  4: 35,
+  3: 20,
+  2: 10,
+  1: 5,
   0: 5,
 };
 
 const SCORE_EMOJI: Record<number, string> = {
-  3: '🏆',
-  2: '🥈',
-  1: '💪',
+  5: '🏆',
+  4: '🥇',
+  3: '🥈',
+  2: '💪',
+  1: '📚',
   0: '📚',
 };
 
@@ -99,7 +103,7 @@ export default function DailyQuizScreen({ session, onComplete }: DailyQuizScreen
 
       // 3. Charger les questions selon la difficulté
       const { data, error } = await supabase
-        .rpc('get_daily_quiz_questions', { p_difficulty: difficulty, n: 3 });
+        .rpc('get_daily_quiz_questions', { p_difficulty: difficulty, n: 5 });
 
       if (error || !data || data.length === 0) {
         onComplete(0);
@@ -205,13 +209,17 @@ export default function DailyQuizScreen({ session, onComplete }: DailyQuizScreen
             {score}/{questions.length}
           </Text>
           <Text style={styles.resultLabel}>
-            {score === 3
-              ? 'Parfait !'
+            {score === 5
+              ? 'Parfait ! 5/5 🤯'
+              : score === 4
+              ? 'Excellent ! 4/5'
+              : score === 3
+              ? 'Très bien ! 3/5'
               : score === 2
-              ? 'Très bien !'
+              ? 'Pas mal ! 2/5'
               : score === 1
-              ? 'Pas mal !'
-              : 'Continue à apprendre !'}
+              ? 'Continue à apprendre !'
+              : 'Allez, demain ça ira mieux !'}
           </Text>
 
           {/* Points badge */}
