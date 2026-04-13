@@ -569,18 +569,31 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
         const today = todayISO();
         const { data } = await supabase
           .from('meal_plans')
-          .select('custom_slot_id')
+          .select('custom_slot_id, custom_name, custom_calories, custom_protein, custom_carbs, custom_fat, custom_time, recipe_id, source')
           .eq('user_id', session.user.id)
           .eq('date', today)
           .eq('is_completed', true);
 
         if (data && data.length > 0) {
-          // Correspondance par slot_id unique — plus de confusion entre slots du même type
-          const completedSlotIds = new Set(
-            data
-              .map((r: { custom_slot_id: string | null }) => r.custom_slot_id)
-              .filter((id): id is string => id !== null),
-          );
+          const completedSlotIds = new Set<string>();
+
+          // Restaurer les données nutritionnelles saisies dans chaque slot
+          const updatedSlots = builtSlots.map((s) => {
+            const row = data.find((r: any) => r.custom_slot_id === s.id);
+            if (!row) return s;
+            completedSlotIds.add(s.id);
+            return {
+              ...s,
+              recipeName: row.custom_name   ?? s.recipeName,
+              calories:   row.custom_calories ?? s.calories,
+              protein:    row.custom_protein  ?? s.protein,
+              carbs:      row.custom_carbs    ?? s.carbs,
+              fat:        row.custom_fat      ?? s.fat,
+              time:       row.custom_time     ?? s.time,
+            };
+          });
+
+          setSlots(updatedSlots);
           setCompletedIds(completedSlotIds);
         }
       } catch (_) {
@@ -597,15 +610,25 @@ export default function DayPlanScreen({ session, coachMode = 'sportif' }: DayPla
       try {
         const today = todayISO();
         if (isCompleted) {
-          await supabase.from('meal_plans').upsert({
-            user_id:         session.user.id,
-            date:            today,
-            meal_type:       slot.type,
-            custom_slot_id:  slot.id,         // clé unique → plus de bug d'encoche
-            recipe_id:       slot.recipeId ?? null,
-            is_completed:    true,
-            custom_time:     eatenAt ?? slot.time,  // heure réelle du repas
-          });
+          await supabase.from('meal_plans').upsert(
+            {
+              user_id:         session.user.id,
+              date:            today,
+              meal_type:       slot.type,
+              custom_slot_id:  slot.id,
+              recipe_id:       slot.recipeId ? Number(slot.recipeId) : null,
+              is_completed:    true,
+              custom_time:     eatenAt ?? slot.time,
+              // Données nutritionnelles — persistées pour survie au changement d'onglet
+              custom_name:     slot.recipeName ?? null,
+              custom_calories: slot.calories,
+              custom_protein:  slot.protein,
+              custom_carbs:    slot.carbs,
+              custom_fat:      slot.fat,
+              source:          slot.source,
+            },
+            { onConflict: 'user_id,date,custom_slot_id' }
+          );
         } else {
           await supabase
             .from('meal_plans')
