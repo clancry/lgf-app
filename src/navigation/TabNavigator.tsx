@@ -8,16 +8,14 @@ import DashboardScreen from '../screens/DashboardScreen';
 import RecipesScreen from '../screens/RecipesScreen';
 import DayPlanScreen from '../screens/DayPlanScreen';
 import ArenaScreen from '../screens/ArenaScreen';
-import WalletScreen from '../screens/WalletScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import StatsScreen from '../screens/StatsScreen';
 
 export type TabParamList = {
   Accueil: undefined;
-  Plan: undefined;
   Recettes: undefined;
   Arena: undefined;
-  Wallet: undefined;
-  Profil: undefined;
+  Plan: undefined;
+  Stats: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -26,6 +24,7 @@ interface TabNavigatorProps {
   session: Session | null;
   onCheatMeal?: () => void;
   onCoachMode?: () => void;
+  onProfile?: () => void;
 }
 
 // Simple icon component using text emoji
@@ -43,7 +42,7 @@ function TabIcon({
   );
 }
 
-export function TabNavigator({ session, onCheatMeal, onCoachMode }: TabNavigatorProps) {
+export function TabNavigator({ session, onCheatMeal, onCoachMode, onProfile }: TabNavigatorProps) {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -63,7 +62,7 @@ export function TabNavigator({ session, onCheatMeal, onCoachMode }: TabNavigator
           ),
         }}
       >
-        {() => <DashboardScreen session={session} onCheatMeal={onCheatMeal} onCoachMode={onCoachMode} />}
+        {() => <DashboardScreen session={session} onCheatMeal={onCheatMeal} onCoachMode={onCoachMode} onProfile={onProfile} />}
       </Tab.Screen>
 
       <Tab.Screen
@@ -103,15 +102,15 @@ export function TabNavigator({ session, onCheatMeal, onCoachMode }: TabNavigator
       </Tab.Screen>
 
       <Tab.Screen
-        name="Profil"
+        name="Stats"
         options={{
-          tabBarLabel: 'Profil',
+          tabBarLabel: 'Stats',
           tabBarIcon: ({ focused }) => (
-            <TabIcon emoji="😊" focused={focused} />
+            <TabIcon emoji="📊" focused={focused} />
           ),
         }}
       >
-        {() => <ProfileScreen session={session} />}
+        {() => <StatsScreen session={session} />}
       </Tab.Screen>
     </Tab.Navigator>
   );

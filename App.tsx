@@ -17,6 +17,7 @@ import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
 import DailyQuizScreen from './src/screens/DailyQuizScreen';
 import CheatMealScreen from './src/screens/CheatMealScreen';
 import CoachModeScreen from './src/screens/CoachModeScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 import { CoachMode } from './src/lib/coach-modes';
 
 export type RootStackParamList = {
@@ -25,6 +26,7 @@ export type RootStackParamList = {
   Onboarding: undefined;
   MainTabs: undefined;
   RecipeDetail: { recipeId: string };
+  Profile: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -170,10 +172,11 @@ export default function App() {
           {appState === 'main' && (
             <>
               <Stack.Screen name="MainTabs">
-                {() => <TabNavigator
+                {(props: any) => <TabNavigator
                   session={session}
                   onCheatMeal={() => setShowCheatMeal(true)}
                   onCoachMode={() => setShowCoachMode(true)}
+                  onProfile={() => props.navigation.navigate('Profile')}
                 />}
               </Stack.Screen>
               <Stack.Screen
@@ -187,6 +190,18 @@ export default function App() {
                   headerTintColor: Colors.white,
                 }}
               />
+              <Stack.Screen
+                name="Profile"
+                options={{
+                  headerShown: true,
+                  headerTitle: 'Mon profil',
+                  headerBackTitle: 'Retour',
+                  headerStyle: { backgroundColor: Colors.darkGreen },
+                  headerTintColor: Colors.white,
+                }}
+              >
+                {() => <ProfileScreen session={session} />}
+              </Stack.Screen>
             </>
           )}
         </Stack.Navigator>

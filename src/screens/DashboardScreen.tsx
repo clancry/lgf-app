@@ -25,6 +25,7 @@ interface DashboardScreenProps {
   session: Session | null;
   onCheatMeal?: () => void;
   onCoachMode?: () => void;
+  onProfile?: () => void;
 }
 
 interface Profile {
@@ -400,6 +401,7 @@ export default function DashboardScreen({
   session,
   onCheatMeal,
   onCoachMode,
+  onProfile,
 }: DashboardScreenProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -625,12 +627,20 @@ export default function DashboardScreen({
         {/* ── HEADER ── */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <View>
-              <Text style={styles.greeting}>
-                Salut {firstName ? `${firstName} ` : ''}👋
-              </Text>
-              <Text style={styles.date}>{formatDate()}</Text>
-            </View>
+            {/* Avatar cliquable → Profil */}
+            <TouchableOpacity onPress={() => onProfile?.()} style={styles.avatarRow} activeOpacity={0.8}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {firstName ? firstName.charAt(0).toUpperCase() : '?'}
+                </Text>
+              </View>
+              <View>
+                <Text style={styles.greeting}>
+                  Salut {firstName ? `${firstName} ` : ''}👋
+                </Text>
+                <Text style={styles.date}>{formatDate()}</Text>
+              </View>
+            </TouchableOpacity>
             <View style={styles.headerBadges}>
               <View style={styles.fitPointsBadge}>
                 <Text style={styles.fitPointsText}>⚡ {fitPoints} pts</Text>
@@ -864,6 +874,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: Colors.lime, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
+  },
+  avatarText: { fontSize: 18, fontWeight: '800', color: Colors.darkGreen },
   greeting: { fontSize: 22, fontWeight: '800', color: Colors.white },
   date: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 2, textTransform: 'capitalize' },
   headerBadges: { alignItems: 'flex-end', gap: 6 },
