@@ -112,7 +112,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.lime + '30',
   },
@@ -142,7 +141,7 @@ const styles = StyleSheet.create({
   macroDot: { width: 6, height: 6, borderRadius: 3 },
   macroText: { fontSize: 11, color: Colors.textSecondary },
   tipContainer: {
-    marginHorizontal: 16, marginTop: 12, paddingTop: 12,
+    marginHorizontal: 16, marginTop: 12, paddingTop: 12, paddingBottom: 4,
     borderTopWidth: 1, borderTopColor: Colors.lime + '20',
   },
   tip: { fontSize: 12, color: Colors.textSecondary, lineHeight: 18 },

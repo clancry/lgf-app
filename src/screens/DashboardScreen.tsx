@@ -830,7 +830,7 @@ const styles = StyleSheet.create({
   },
 
   // Breakfast compact (scale down via outer container)
-  breakfastCompact: { overflow: 'hidden', maxHeight: 180 },
+  breakfastCompact: {},
 
   // Actions
   actionsRow: {
