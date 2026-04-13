@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Colors } from '../theme/colors';
+import { COACH_MODES, CoachMode } from '../lib/coach-modes';
 
 const { width } = Dimensions.get('window');
 
@@ -35,6 +36,7 @@ interface OnboardingData {
   regime: string;
   objectif: string;
   objectif_secondaire: string;
+  coach_mode: string;
   niveau_activite: string;
   heure_entrainement: string;
   budget_mensuel: number;
@@ -231,6 +233,7 @@ export default function OnboardingScreen({ session, onComplete }: OnboardingScre
     regime: '',
     objectif: '',
     objectif_secondaire: '',
+    coach_mode: '',
     niveau_activite: '',
     heure_entrainement: '',
     budget_mensuel: 200,
@@ -263,7 +266,11 @@ export default function OnboardingScreen({ session, onComplete }: OnboardingScre
         return;
       }
     }
-    if (step < 3) setStep(step + 1);
+    if (step === 3 && !data.coach_mode) {
+      showAlert('Choix requis', 'Sélectionne ton style de coaching pour continuer.');
+      return;
+    }
+    if (step < 4) setStep(step + 1);
     else handleFinish();
   }
 
@@ -287,6 +294,7 @@ export default function OnboardingScreen({ session, onComplete }: OnboardingScre
         regime: data.regime || null,
         goal: data.objectif || null,
         secondary_goal: data.objectif_secondaire || null,
+        coach_mode: data.coach_mode || null,
         activity_level: data.niveau_activite || null,
         training_time: data.heure_entrainement || null,
         monthly_budget: data.budget_mensuel || null,
@@ -310,7 +318,7 @@ export default function OnboardingScreen({ session, onComplete }: OnboardingScre
     }
   }
 
-  const steps = ['Bienvenue', 'Profil', 'Objectifs', 'Planning'];
+  const steps = ['Bienvenue', 'Profil', 'Objectifs', 'Coach', 'Planning'];
   const age = data.birth_date.length >= 10 ? calcAge(data.birth_date) : null;
 
   return (
@@ -592,8 +600,104 @@ export default function OnboardingScreen({ session, onComplete }: OnboardingScre
             </View>
           )}
 
-          {/* Step 3: Planning */}
+          {/* Step 3: Choix du mode coach */}
           {step === 3 && (
+            <View>
+              <Text style={styles.stepTitle}>Ton style de coaching 🎯</Text>
+              <Text style={styles.stepSubtitle}>
+                C'est le choix le plus important de ton onboarding. Prends le temps de bien lire chaque profil — un mauvais choix peut te décourager.
+              </Text>
+
+              {/* Avertissement */}
+              <View style={styles.warningBox}>
+                <Text style={styles.warningIcon}>⚠️</Text>
+                <Text style={styles.warningText}>
+                  <Text style={styles.warningBold}>Attention :</Text> les modes Challenger et Warrior sont conçus pour des athlètes expérimentés avec une forte discipline mentale. Si tu débutes ou es sensible à la pression, commence par Soft ou Sportif — tu pourras changer à tout moment.
+                </Text>
+              </View>
+
+              {/* Cards modes */}
+              {COACH_MODES.map((mode) => {
+                const isSelected = data.coach_mode === mode.id;
+                const isHard = mode.id === 'challenger' || mode.id === 'warrior';
+                return (
+                  <TouchableOpacity
+                    key={mode.id}
+                    style={[
+                      styles.coachCard,
+                      isSelected && { borderColor: mode.color, borderWidth: 2.5 },
+                    ]}
+                    onPress={() => update('coach_mode', mode.id)}
+                    activeOpacity={0.85}
+                  >
+                    {/* Header */}
+                    <View style={[styles.coachCardHeader, { backgroundColor: mode.color + '18' }]}>
+                      <Text style={styles.coachEmoji}>{mode.emoji}</Text>
+                      <View style={styles.coachHeaderText}>
+                        <Text style={[styles.coachName, { color: mode.color }]}>{mode.name}</Text>
+                        <Text style={styles.coachTagline}>{mode.tagline}</Text>
+                      </View>
+                      {isSelected && (
+                        <View style={[styles.coachCheck, { backgroundColor: mode.color }]}>
+                          <Text style={styles.coachCheckText}>✓</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Description */}
+                    <Text style={styles.coachDesc}>{mode.description}</Text>
+
+                    {/* Exemple de message */}
+                    <View style={styles.coachExample}>
+                      <Text style={styles.coachExampleLabel}>Exemple de message coach :</Text>
+                      <Text style={styles.coachExampleText}>
+                        {mode.id === 'soft' && '"Belle journée devant toi 🌱 N\'oublie pas ton petit-déj !"'}
+                        {mode.id === 'sportif' && '"Ton plan du jour t\'attend. Lance-toi 💪 La régularité fait tout."'}
+                        {mode.id === 'challenger' && '"Debout. Pas d\'excuses. Ton plan t\'attend. Les résultats aussi. 🔥"'}
+                        {mode.id === 'warrior' && '"⚔️ Lève-toi. Mange. Entraîne-toi. Répète. Pas de discussion."'}
+                      </Text>
+                    </View>
+
+                    {/* Jauge tolérance */}
+                    <View style={styles.toleranceRow}>
+                      <Text style={styles.toleranceLabel}>Tolérance aux écarts</Text>
+                      <View style={styles.toleranceTrack}>
+                        <View
+                          style={[
+                            styles.toleranceFill,
+                            { width: `${mode.tolerance}%` as any, backgroundColor: mode.color },
+                          ]}
+                        />
+                      </View>
+                      <Text style={[styles.toleranceValue, { color: mode.color }]}>
+                        {mode.tolerance === 0 ? 'Aucune' :
+                         mode.tolerance <= 30 ? 'Faible' :
+                         mode.tolerance <= 65 ? 'Modérée' : 'Élevée'}
+                      </Text>
+                    </View>
+
+                    {/* Badge avertissement pour modes durs */}
+                    {isHard && (
+                      <View style={styles.hardBadge}>
+                        <Text style={styles.hardBadgeText}>
+                          {mode.id === 'warrior'
+                            ? '⚔️ Réservé aux compétiteurs confirmés'
+                            : '🔥 Pour profils déterminés uniquement'}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+
+              <Text style={styles.changeNote}>
+                Tu pourras changer de mode à tout moment depuis ton profil.
+              </Text>
+            </View>
+          )}
+
+          {/* Step 4: Planning */}
+          {step === 4 && (
             <View>
               <Text style={styles.stepTitle}>Ton planning 📅</Text>
               <Text style={styles.stepSubtitle}>
@@ -663,7 +767,7 @@ export default function OnboardingScreen({ session, onComplete }: OnboardingScre
             <ActivityIndicator color={Colors.white} />
           ) : (
             <Text style={styles.nextButtonText}>
-              {step === 3 ? "C'est parti ! 🚀" : 'Continuer →'}
+              {step === 4 ? "C'est parti ! 🚀" : 'Continuer →'}
             </Text>
           )}
         </TouchableOpacity>
@@ -1065,5 +1169,145 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '800',
     letterSpacing: 0.3,
+  },
+
+  /* Coach mode */
+  coachCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    marginBottom: 14,
+    overflow: 'hidden',
+  },
+  coachCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: 12,
+  },
+  coachEmoji: { fontSize: 28 },
+  coachHeaderText: { flex: 1 },
+  coachName: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  coachTagline: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  coachCheck: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  coachCheckText: {
+    color: Colors.white,
+    fontWeight: '900',
+    fontSize: 14,
+  },
+  coachDesc: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+  },
+  coachExample: {
+    backgroundColor: Colors.background,
+    marginHorizontal: 14,
+    marginBottom: 12,
+    borderRadius: 10,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.border,
+  },
+  coachExampleLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 4,
+  },
+  coachExampleText: {
+    fontSize: 13,
+    color: Colors.textPrimary,
+    fontStyle: 'italic',
+    lineHeight: 18,
+  },
+  toleranceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    gap: 8,
+  },
+  toleranceLabel: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    fontWeight: '600',
+    width: 120,
+  },
+  toleranceTrack: {
+    flex: 1,
+    height: 5,
+    backgroundColor: Colors.border,
+    borderRadius: 3,
+  },
+  toleranceFill: {
+    height: 5,
+    borderRadius: 3,
+  },
+  toleranceValue: {
+    fontSize: 11,
+    fontWeight: '700',
+    width: 56,
+    textAlign: 'right',
+  },
+  hardBadge: {
+    backgroundColor: '#FEF3C7',
+    marginHorizontal: 14,
+    marginBottom: 12,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
+  },
+  hardBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  warningBox: {
+    backgroundColor: '#FFF7ED',
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  warningIcon: { fontSize: 18 },
+  warningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 19,
+  },
+  warningBold: { fontWeight: '800' },
+  changeNote: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
 });
