@@ -107,7 +107,8 @@ export async function purchasePremium(userId: string): Promise<PurchaseResult> {
     //
     // const Purchases = require('react-native-purchases').default;
     // const offerings = await Purchases.getOfferings();
-    // const pkg = offerings.current?.availablePackages[0];
+    // const offering = offerings.all['default2'] ?? offerings.current;
+    // const pkg = offering?.availablePackages[0];
     // if (!pkg) throw new Error('No package available');
     //
     // const { customerInfo } = await Purchases.purchasePackage(pkg);
