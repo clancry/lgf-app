@@ -633,10 +633,68 @@ export default function ArenaScreen({ session }: ArenaScreenProps) {
               <ActivityIndicator size="large" color={Colors.darkGreen} />
               <Text style={{ marginTop: 12, color: Colors.textSecondary }}>Chargement du quiz...</Text>
             </View>
+          ) : quizDoneToday && quizTodayResult && !quizFinished ? (
+            // ── Quiz déjà fait aujourd'hui — afficher le score comme une victoire
+            <View style={styles.resultContainer}>
+              <Text style={styles.resultEmoji}>
+                {quizTodayResult.score === 5 ? '🏆' : quizTodayResult.score === 4 ? '🥇' : quizTodayResult.score === 3 ? '🥈' : '💪'}
+              </Text>
+              <Text style={styles.resultTitle}>Quiz du jour complété !</Text>
+              <Text style={styles.resultScore}>{quizTodayResult.score} / 5</Text>
+              <Text style={styles.resultSub}>bonnes réponses aujourd'hui</Text>
+
+              <View style={styles.resultPointsBox}>
+                <Text style={styles.resultPointsLabel}>Points gagnés</Text>
+                <Text style={styles.resultPointsValue}>+{quizTodayResult.points} pts</Text>
+              </View>
+
+              <View style={styles.resultStreakBox}>
+                <Text style={styles.resultStreakText}>🔥 Streak : {streak} jours</Text>
+              </View>
+
+              <View style={styles.quizCoachComment}>
+                <Text style={styles.quizCoachCommentText}>
+                  {quizTodayResult.score === 5
+                    ? '🏆 Parfait ! 5/5 — Tu es imbattable aujourd\'hui !'
+                    : quizTodayResult.score === 4
+                    ? '🥇 Excellent ! 4/5 — Presque parfait, continue comme ça !'
+                    : quizTodayResult.score === 3
+                    ? '🥈 Bien joué ! 3/5 — Tu progresses chaque jour.'
+                    : quizTodayResult.score === 2
+                    ? '💪 2/5 — Bonne participation ! Les tips Arena t\'aideront.'
+                    : '💪 Tu t\'es lancé, c\'est déjà une victoire !'}
+                </Text>
+                <View style={styles.quizDoneSeparator} />
+                <Text style={styles.quizDoneNextLabel}>Prochain quiz disponible dans</Text>
+                <Text style={styles.quizDoneNextTime}>
+                  {(() => {
+                    const now = new Date();
+                    const midnight = new Date();
+                    midnight.setHours(24, 0, 0, 0);
+                    const diff = Math.ceil((midnight.getTime() - now.getTime()) / 60000);
+                    const h = Math.floor(diff / 60);
+                    const m = diff % 60;
+                    return `${h}h ${m}min`;
+                  })()}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.shareButton}
+                onPress={() => {
+                  setActiveTab('feed');
+                  setShowComposer(true);
+                  setNewPost(`🧠 Quiz Arena — ${quizTodayResult.score}/5 bonnes réponses ! +${quizTodayResult.points} pts gagnés. Streak : ${streak} jours 🔥`);
+                }}
+              >
+                <Text style={styles.shareButtonText}>📣 Partager sur le Feed</Text>
+              </TouchableOpacity>
+            </View>
+
           ) : quizQuestions.length === 0 ? (
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
-              <Text style={{ fontSize: 40 }}>{'😕'}</Text>
-              <Text style={{ marginTop: 12, color: Colors.textSecondary, textAlign: 'center' }}>Impossible de charger le quiz.{' '}Vérifie ta connexion.</Text>
+              <Text style={{ fontSize: 40 }}>😕</Text>
+              <Text style={{ marginTop: 12, color: Colors.textSecondary, textAlign: 'center' }}>Impossible de charger le quiz. Vérifie ta connexion.</Text>
             </View>
           ) : quizFinished ? (
             <View style={styles.resultContainer}>
