@@ -7,13 +7,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { PremiumGate, PremiumPaywall, PremiumBadge } from '../components/PremiumGate';
 import { Colors } from '../theme/colors';
 
 const { width } = Dimensions.get('window');
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type StatsTab = 'macros' | 'poids' | 'perfs' | 'points';
+type StatsTab = 'macros' | 'poids' | 'perfs' | 'points' | 'scan';
 type Period = '7j' | '30j' | '3m';
 
 interface DayStat {
@@ -140,6 +141,8 @@ export default function StatsScreen({ session }: StatsScreenProps) {
   const [activeTab, setActiveTab] = useState<StatsTab>('macros');
   const [period, setPeriod] = useState<Period>('7j');
   const [loading, setLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Data
   const [dayStats, setDayStats] = useState<DayStat[]>([]);
@@ -195,7 +198,7 @@ export default function StatsScreen({ session }: StatsScreenProps) {
           .single(),
         supabase
           .from('profiles')
-          .select('daily_calories')
+          .select('daily_calories, is_premium')
           .eq('id', session.user.id)
           .single(),
       ]);
@@ -224,6 +227,7 @@ export default function StatsScreen({ session }: StatsScreenProps) {
 
       if (profileRes.data) {
         setDailyGoal((profileRes.data as any).daily_calories ?? 2200);
+        setIsPremium(!!(profileRes.data as any).is_premium);
       }
     } catch (e) {
       console.error('Stats load error:', e);
@@ -299,11 +303,12 @@ export default function StatsScreen({ session }: StatsScreenProps) {
 
   // ── Tabs ────────────────────────────────────────────────────────────────────
 
-  const tabs: { key: StatsTab; label: string }[] = [
+  const tabs: { key: StatsTab; label: string; premium?: boolean }[] = [
     { key: 'macros', label: '🔥 Calories' },
     { key: 'poids',  label: '⚖️ Poids' },
     { key: 'perfs',  label: '🏋️ PRs' },
     { key: 'points', label: '⚡ Points' },
+    { key: 'scan',   label: '📸 Body Scan', premium: true },
   ];
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -346,11 +351,17 @@ export default function StatsScreen({ session }: StatsScreenProps) {
           <TouchableOpacity
             key={t.key}
             style={[styles.tab, activeTab === t.key && styles.tabActive]}
-            onPress={() => setActiveTab(t.key)}
+            onPress={() => {
+              if (t.premium && !isPremium) { setShowPaywall(true); return; }
+              setActiveTab(t.key);
+            }}
           >
             <Text style={[styles.tabText, activeTab === t.key && styles.tabTextActive]}>
               {t.label}
             </Text>
+            {t.premium && !isPremium && (
+              <Text style={styles.tabPremiumIcon}>👑</Text>
+            )}
           </TouchableOpacity>
         ))}
       </View>
@@ -470,6 +481,13 @@ export default function StatsScreen({ session }: StatsScreenProps) {
           </View>
         )}
 
+        {/* ── TAB BODY SCAN ── */}
+        {activeTab === 'scan' && (
+          <PremiumGate isPremium={isPremium} onSubscribe={() => setShowPaywall(true)} label="Body Scan IA">
+            <BodyScanPlaceholder />
+          </PremiumGate>
+        )}
+
         {/* ── TAB POINTS ── */}
         {activeTab === 'points' && (
           <View style={styles.tabContent}>
@@ -572,9 +590,89 @@ export default function StatsScreen({ session }: StatsScreenProps) {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+      <PremiumPaywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onSubscribe={async () => {
+          // TODO: RevenueCat purchase flow
+          setShowPaywall(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
+
+// ─── Body Scan Placeholder (UI complète grisée) ───────────────────────────────
+
+function BodyScanPlaceholder() {
+  return (
+    <View style={bodyScanStyles.container}>
+      <View style={bodyScanStyles.cameraZone}>
+        <Text style={bodyScanStyles.cameraIcon}>📸</Text>
+        <Text style={bodyScanStyles.cameraTitle}>Analyse corporelle IA</Text>
+        <Text style={bodyScanStyles.cameraSub}>
+          Prends une photo face + profil — l'IA analyse ta composition corporelle en 30 secondes
+        </Text>
+      </View>
+
+      <View style={bodyScanStyles.resultsGrid}>
+        {[
+          { label: 'Masse grasse', value: '18.4%', icon: '🔥', color: '#E8612D' },
+          { label: 'Masse musculaire', value: '42.1 kg', icon: '💪', color: Colors.darkGreen },
+          { label: 'IMC', value: '23.2', icon: '⚖️', color: '#3B82F6' },
+          { label: 'Eau corporelle', value: '61.3%', icon: '💧', color: '#06B6D4' },
+        ].map((m, i) => (
+          <View key={i} style={[bodyScanStyles.metricCard, { borderColor: m.color + '40' }]}>
+            <Text style={bodyScanStyles.metricIcon}>{m.icon}</Text>
+            <Text style={[bodyScanStyles.metricValue, { color: m.color }]}>{m.value}</Text>
+            <Text style={bodyScanStyles.metricLabel}>{m.label}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={bodyScanStyles.historyCard}>
+        <Text style={bodyScanStyles.historyTitle}>Évolution masse grasse</Text>
+        <View style={bodyScanStyles.fakeChart}>
+          {[22, 20, 19.5, 18.8, 18.4].map((v, i) => (
+            <View key={i} style={bodyScanStyles.fakeBarCol}>
+              <View style={[bodyScanStyles.fakeBar, { height: v * 3 }]} />
+              <Text style={bodyScanStyles.fakeBarLabel}>S{i + 1}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const bodyScanStyles = StyleSheet.create({
+  container: { gap: 16 },
+  cameraZone: {
+    backgroundColor: Colors.white, borderRadius: 16, padding: 28,
+    alignItems: 'center', gap: 10, borderWidth: 2,
+    borderStyle: 'dashed', borderColor: Colors.border,
+  },
+  cameraIcon: { fontSize: 48 },
+  cameraTitle: { fontSize: 16, fontWeight: '800', color: Colors.textPrimary },
+  cameraSub: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center', lineHeight: 18 },
+  resultsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  metricCard: {
+    width: '47%', backgroundColor: Colors.white, borderRadius: 14,
+    padding: 14, alignItems: 'center', gap: 4, borderWidth: 1.5,
+  },
+  metricIcon: { fontSize: 24 },
+  metricValue: { fontSize: 22, fontWeight: '800' },
+  metricLabel: { fontSize: 11, color: Colors.textMuted, fontWeight: '600', textAlign: 'center' },
+  historyCard: {
+    backgroundColor: Colors.white, borderRadius: 14, padding: 16,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  historyTitle: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+  fakeChart: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 80 },
+  fakeBarCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
+  fakeBar: { width: '70%', backgroundColor: Colors.lime, borderRadius: 4 },
+  fakeBarLabel: { fontSize: 9, color: Colors.textMuted, fontWeight: '600' },
+});
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -608,6 +706,7 @@ const styles = StyleSheet.create({
   tabActive: { borderBottomWidth: 2.5, borderBottomColor: Colors.darkGreen },
   tabText: { fontSize: 11, fontWeight: '600', color: Colors.textMuted },
   tabTextActive: { color: Colors.darkGreen, fontWeight: '800' },
+  tabPremiumIcon: { fontSize: 8, position: 'absolute', top: 4, right: 4 },
 
   // Tab content
   tabContent: { gap: 16 },

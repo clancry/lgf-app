@@ -18,6 +18,7 @@ import { Colors } from '../theme/colors';
 import { CoachMode, COACH_MODES } from '../lib/coach-modes';
 import MealLogModal, { LoggedMeal } from '../components/MealLogModal';
 import BreakfastCard from '../components/BreakfastCard';
+import { PremiumBadge, PremiumPaywall } from '../components/PremiumGate';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -412,6 +413,7 @@ export default function DashboardScreen({
   const [modalSlotType, setModalSlotType] = useState('custom');
   const [streak, setStreak] = useState(0);
   const [fitPoints, setFitPoints] = useState(0);
+  const [showPaywall, setShowPaywall] = useState(false);
   const [weekData, setWeekData] = useState<Record<string, DayData>>({});
   const [selectedDay, setSelectedDay] = useState<string | null>(null);  // ISO date sélectionnée
 
@@ -664,6 +666,16 @@ export default function DashboardScreen({
                 {coachConfig?.emoji} {coachConfig?.name ?? 'Soft'}
               </Text>
             </View>
+          {/* Badge Premium si pas abonné */}
+            {!profile?.is_premium && (
+              <TouchableOpacity
+                onPress={() => setShowPaywall(true)}
+                style={styles.premiumChip}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.premiumChipText}>👑 1 mois gratuit</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -845,6 +857,13 @@ export default function DashboardScreen({
         <View style={{ height: 32 }} />
       </ScrollView>
 
+      {/* ── PREMIUM PAYWALL ── */}
+      <PremiumPaywall
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onSubscribe={async () => { setShowPaywall(false); }}
+      />
+
       {/* ── MODAL ── */}
       <MealLogModal
         visible={modalVisible}
@@ -912,6 +931,11 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   chipText: { fontSize: 12, fontWeight: '700' },
+  premiumChip: {
+    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20,
+    backgroundColor: '#F59E0B', borderWidth: 0,
+  },
+  premiumChipText: { fontSize: 11, fontWeight: '800', color: '#fff' },
 
   // Ring section
   ringSection: {
